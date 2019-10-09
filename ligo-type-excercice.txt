@@ -1,0 +1,54 @@
+(** Lygo Typesystem
+This file present a formal description of the Ligo typesystem
+
+The typesystem features :
+    - Basic Types
+    - Polymorphism
+    - Records
+    - Variants
+    
+* contraintes: prédicat(type, type, type, …) ou type ~ type (qui dit que les deux types doivent être unifiables), pas le même kind que les types
+* typeclasses: (forall alpha, constraint(…) => …`
+* rangées \rho (pas le même kind que les type variables), qui sont des maps de labels vers types
+* polymorphisme de rangée (forall rho, …)
+* Quand t'as ça, on verra pour avoir un first-class environment, ajouter le kinding, et quelques opérations de rangée 
+
+
+*)
+
+(** Syntax *)
+
+expr = 
+  | value                             (* values *)
+  | built_in                          (* build in function *)
+  | lambda x . expr                   (* abstraction *) 
+  | expr expr                         (* application *)
+  | { l_i = expr_i }                  (* record *)
+  | expr.l                            (* projection *)
+  | < l = expr >                      (* variant *)
+  | case t of < l_i = x_i > => expr_i (* case *)
+  | expr as type                      (* tagging *)
+  
+value =
+  | v                 (* instance of an éléments in B *)
+  | lambda x . value  (* abstraction value *)
+  | {l_i = value_i }  (* record value *)
+  | < l = value_i >   (* variant value *)
+  
+type = 
+  | B                (* Basic types *)
+  | type -> type     (* type of abstraction *)
+  | { l_i : type_i } (* type of records *)
+  | < l_i : type_i > (* type of variants *)
+
+Γ =
+  | ()            (* empty context *)
+  | Γ, x:type (* term variable binding *)
+  
+(** Typing *)
+
+x:T ∈ Γ => Γ ⊢ x:T                               (* T-VAR *)
+Γ,x:T ⊢ e : S => Γ ⊢ λx:T.e : T -> S             (* T-ABS *)
+Γ ⊢ e1: T -> S and Γ ⊢ e2 : T => Γ ⊢ e1 e2 : S   (* T-APP *)
+
+
