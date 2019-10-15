@@ -21,17 +21,17 @@ The typesystem features :
 expr = 
   | value                             (* values *)
   | built_in                          (* build in function *)
-  | lambda x . expr                   (* abstraction *) 
+  | λx . expr                         (* abstraction *) 
   | expr expr                         (* application *)
   | { l_i = expr_i }                  (* record *)
   | expr.l                            (* projection *)
   | < l = expr >                      (* variant *)
   | case t of < l_i = x_i > => expr_i (* case *)
-  | expr as type                      (* tagging *)
+  | expr as type                      (* ascription *)
   
 value =
-  | v                 (* instance of an éléments in B *)
-  | lambda x . value  (* abstraction value *)
+  | b                 (* instance of an éléments in B *)
+  | λx . value        (* abstraction value *)
   | {l_i = value_i }  (* record value *)
   | < l = value_i >   (* variant value *)
   
@@ -44,11 +44,32 @@ type =
 Γ =
   | ()            (* empty context *)
   | Γ, x:type (* term variable binding *)
-  
+
+
+
 (** Typing *)
 
-x:T ∈ Γ => Γ ⊢ x:T                               (* T-VAR *)
-Γ,x:T ⊢ e : S => Γ ⊢ λx:T.e : T -> S             (* T-ABS *)
-Γ ⊢ e1: T -> S and Γ ⊢ e2 : T => Γ ⊢ e1 e2 : S   (* T-APP *)
+x:T ∈ Γ ==> Γ ⊢ x:T                               (* T-VAR *)
+Γ,x:T ⊢ e : S ==> Γ ⊢ λx:T.e : T -> S             (* T-ABS *)
+Γ ⊢ e1 : T -> S and Γ ⊢ e2 : T ==> Γ ⊢ e1 e2 : S  (* T-APP *)
+for each i, Γ ⊢ ei : Ti ==> Γ ⊢ {ei} : {Ti}       (* T-TUPLE *)
+Γ ⊢ e : {Ti} ==> Γ ⊢ e.j : Tj                     (* T-PROJ *)
+Γ ⊢ ej : Tj ==> Γ ⊢ <lj=ej> as <li=Ti> : <li:Ti>  (* T-VARIANT *)
+Γ ⊢ e0 : <li:Ti> and for each i, Γ,xi:Ti ⊢ ei : T 
+          ==> Γ ⊢ case e0 of <li=Ti> => ei:T      (* T-CASE *)
+Γ ⊢ e : T ==> Γ ⊢ e as T : T                      (* T-ASCRIPTION *)
 
+(** Evaluation *)
 
+e1 -> e1' => e1 e2 -> e1' e2                      (* E-APP1 *)
+e2 -> e2' => v1 e2 -> v1 e2'                      (* E-APP2 *)
+(λx:T.e) v -> [ x -> v ] e                        (* E-APPABS *)
+ej -> ej' ==> {vi, ej, ek} -> {vi, ej', ek}       (* E-TUPLE *)
+e -> e' ==> e.i -> e'.i                           (* E-PROJ *)
+{vi}.j -> vj                                      (* E-PROJTUPLE *)
+ei -> ei' ==> <li=ei> as T -> <li=ei'> as T       (* E-VARIANT *)
+e0 -> e0' ==> case e0 of <li=xi> => ei 
+                    -> case e0' of <li=xi> => ei  (* E-CASE *)
+case (<lj=vj> as T) of <li=xi> => ei 
+                    -> [ xj => vj ] ej            (* E-CASEVARIANT *)
+v as T -> v                                       (* E-ASCRIPTION *)
