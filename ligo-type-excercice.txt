@@ -22,9 +22,8 @@ expr =
   | value                             (* values *)
   | built_in                          (* build in function *)
   | λx . expr                         (* abstraction *) 
-  | expr expr                         (* application *)
+  | λX . expr                         (* type abstraction *) 
   | { l_i = expr_i }                  (* record *)
-  | expr.l                            (* projection *)
   | < l = expr >                      (* variant *)
   | case t of < l_i = x_i > => expr_i (* case *)
   | expr as type                      (* ascription *)
@@ -32,37 +31,66 @@ expr =
 value =
   | b                 (* instance of an éléments in B *)
   | λx . value        (* abstraction value *)
+  | λX . value        (* type abstraction value *) 
   | {l_i = value_i }  (* record value *)
   | < l = value_i >   (* variant value *)
   
 type = 
   | B                (* Basic types *)
+  | X                (* type variabe *)
   | type -> type     (* type of abstraction *)
+  | forall X.type    (* universal type *)
+  | lambda X.type    (* operator abstraction *)
+  | type type        (* operator application *)
   | { l_i : type_i } (* type of records *)
   | < l_i : type_i > (* type of variants *)
 
+kind =
+  | *          (* kind of proper types *)
+  | kind => kind     (* kind of operators *)
+
 Γ =
-  | ()            (* empty context *)
+  | ()        (* empty context *)
   | Γ, x:type (* term variable binding *)
+  | Γ, X::kind (* type variable binding *)
 
+(** Kinding **)
+X::K in Γ ==> Γ ⊢ X :: K                                  (* K-TVAR *)
+Γ,X::K1 ⊢ T2::K2 ==> Γ ⊢ λX::K1.T2 :: K1 =>K2             (* K-TAbS *)
+Γ ⊢ T1 :: K11 => K12, Γ ⊢ T2 :: K11 ==> Γ ⊢ T1 T2 :: K12  (* K-TAPP *)
+Γ ⊢ T1 :: *  Γ ⊢ T2 :: * ==> Γ ⊢ T1 -> T2 :: *            (* K-ARROW *)
 
+(** Type equivalence **)
+Γ ⊢ T :: K ==> Γ ⊢ T ≡ T :: K                                          (* Q-REFL *)
+Γ ⊢ T ≡ S :: K ==> Γ ⊢ S ≡ T :: K                                      (* Q-SYMM *)
+Γ ⊢ S ≡ U :: K   Γ ⊢ U ≡ T :: K ==> Γ ⊢ S ≡ T :: K                     (* Q-TRANS *)
+Γ, X :: K1 ⊢ T2 :: K2 Γ ⊢ T1 :: K1                                     (* Q-BETA *)
+    ==> Γ ⊢ (λX ::K1 .T2) T1 ≡ {X → T1}T2 :: K2
+Γ ⊢ S :: K1 => K2 and Γ ⊢ T :: K1 => K2 and                            (* Q-EXT *)
+    Γ, X::K1 ⊢ S X ≡ T X::K2 ==> Γ ⊢ S ≡ T : K1 => k2
+Γ,X::K1 ⊢ S2≡T2::K2 ==> Γ ⊢ λX::K1.S2 ≡ λX::K1.T2 :: K1=>K2            (* Q-TABS *)
+Γ ⊢ S1≡T1::K1 => K2 and Γ ⊢ S2≡T2::K1 ==> Γ ⊢ S1 S2 ≡ T1 T2 :: K2      (* Q-APP *)
+Γ ⊢ S1 ≡ T1 :: * and Γ ⊢ S2 ≡ T2 :: * ==> Γ ⊢ S1 -> S2 ≡ T1 -> T2 :: * (* Q-Arrow *)
 
 (** Typing *)
 
-x:T ∈ Γ ==> Γ ⊢ x:T                               (* T-VAR *)
-Γ,x:T ⊢ e : S ==> Γ ⊢ λx:T.e : T -> S             (* T-ABS *)
-Γ ⊢ e1 : T -> S and Γ ⊢ e2 : T ==> Γ ⊢ e1 e2 : S  (* T-APP *)
-for each i, Γ ⊢ ei : Ti ==> Γ ⊢ {ei} : {Ti}       (* T-TUPLE *)
-Γ ⊢ e : {Ti} ==> Γ ⊢ e.j : Tj                     (* T-PROJ *)
-Γ ⊢ ej : Tj ==> Γ ⊢ <lj=ej> as <li=Ti> : <li:Ti>  (* T-VARIANT *)
+Γ ⊢ t : S and Γ ⊢ S ≡ T :: * ==> Γ ⊢ t : T         (* T-EQ *)
+x:T ∈ Γ ==> Γ ⊢ x:T                                (* T-VAR *)
+Γ ⊢ T::* and Γ,x:T ⊢ e : S ==> Γ ⊢ λx:T.e : T -> S (* T-ABS *)
+Γ ⊢ e1 : T -> S and Γ ⊢ e2 : T ==> Γ ⊢ e1 e2 : S   (* T-APP *)
+for each i, Γ ⊢ ei : Ti ==> Γ ⊢ {ei} : {Ti}        (* T-TUPLE *)
+Γ ⊢ e : {Ti} ==> Γ ⊢ e.j : Tj                      (* T-PROJ *)
+Γ ⊢ ej : Tj ==> Γ ⊢ <lj=ej> as <li=Ti> : <li:Ti>   (* T-VARIANT *)
 Γ ⊢ e0 : <li:Ti> and for each i, Γ,xi:Ti ⊢ ei : T 
-          ==> Γ ⊢ case e0 of <li=Ti> => ei:T      (* T-CASE *)
-Γ ⊢ e : T ==> Γ ⊢ e as T : T                      (* T-ASCRIPTION *)
+          ==> Γ ⊢ case e0 of <li=Ti> => ei:T       (* T-CASE *)
+Γ ⊢ e : T ==> Γ ⊢ e as T : T                       (* T-ASCRIPTION *)
 
-(** Evaluation *)
 
-e1 -> e1' => e1 e2 -> e1' e2                      (* E-APP1 *)
-e2 -> e2' => v1 e2 -> v1 e2'                      (* E-APP2 *)
+
+(** Evaluation **)
+
+e1 -> e1' ==> e1 e2 -> e1' e2                     (* E-APP1 *)
+e2 -> e2' ==> v1 e2 -> v1 e2'                     (* E-APP2 *)
 (λx:T.e) v -> [ x -> v ] e                        (* E-APPABS *)
 ej -> ej' ==> {vi, ej, ek} -> {vi, ej', ek}       (* E-TUPLE *)
 e -> e' ==> e.i -> e'.i                           (* E-PROJ *)
