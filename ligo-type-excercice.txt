@@ -23,10 +23,13 @@ expr =
   | built_in                          (* build in function *)
   | λx . expr                         (* abstraction *) 
   | λX . expr                         (* type abstraction *) 
+  | expr expr                         (* application *)
   | { l_i = expr_i }                  (* record *)
+  | { l_i = expr_i }.l_j              (* projection *)
   | < l = expr >                      (* variant *)
   | case t of < l_i = x_i > => expr_i (* case *)
   | expr as type                      (* ascription *)
+
   
 value =
   | b                 (* instance of an éléments in B *)
@@ -54,6 +57,23 @@ kind =
   | Γ, x:type (* term variable binding *)
   | Γ, X::kind (* type variable binding *)
 
+(** Evaluation **)
+
+e1 -> e1' ==> e1 e2 -> e1' e2                     (* E-APP1 *)
+e2 -> e2' ==> v1 e2 -> v1 e2'                     (* E-APP2 *)
+(λx:T.e) v -> [ x -> v ] e                        (* E-APPABS *)
+ej -> ej' ==> {vi, ej, ek} -> {vi, ej', ek}       (* E-TUPLE *)
+e -> e' ==> e.i -> e'.i                           (* E-PROJ *)
+{vi}.j -> vj                                      (* E-PROJTUPLE *)
+ei -> ei' ==> <li=ei> as T -> <li=ei'> as T       (* E-VARIANT *)
+e0 -> e0' ==> case e0 of <li=xi> => ei 
+                    -> case e0' of <li=xi> => ei  (* E-CASE *)
+case (<lj=vj> as T) of <li=xi> => ei 
+                    -> [ xj => vj ] ej            (* E-CASEVARIANT *)
+v as T -> v                                       (* E-ASCRIPTION *)
+
+
+(** In progress 
 (** Kinding **)
 X::K in Γ ==> Γ ⊢ X :: K                                  (* K-TVAR *)
 Γ,X::K1 ⊢ T2::K2 ==> Γ ⊢ λX::K1.T2 :: K1 =>K2             (* K-TAbS *)
@@ -86,18 +106,4 @@ for each i, Γ ⊢ ei : Ti ==> Γ ⊢ {ei} : {Ti}        (* T-TUPLE *)
 Γ ⊢ e : T ==> Γ ⊢ e as T : T                       (* T-ASCRIPTION *)
 
 
-
-(** Evaluation **)
-
-e1 -> e1' ==> e1 e2 -> e1' e2                     (* E-APP1 *)
-e2 -> e2' ==> v1 e2 -> v1 e2'                     (* E-APP2 *)
-(λx:T.e) v -> [ x -> v ] e                        (* E-APPABS *)
-ej -> ej' ==> {vi, ej, ek} -> {vi, ej', ek}       (* E-TUPLE *)
-e -> e' ==> e.i -> e'.i                           (* E-PROJ *)
-{vi}.j -> vj                                      (* E-PROJTUPLE *)
-ei -> ei' ==> <li=ei> as T -> <li=ei'> as T       (* E-VARIANT *)
-e0 -> e0' ==> case e0 of <li=xi> => ei 
-                    -> case e0' of <li=xi> => ei  (* E-CASE *)
-case (<lj=vj> as T) of <li=xi> => ei 
-                    -> [ xj => vj ] ej            (* E-CASEVARIANT *)
-v as T -> v                                       (* E-ASCRIPTION *)
+*)
