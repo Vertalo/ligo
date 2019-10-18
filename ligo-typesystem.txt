@@ -18,7 +18,7 @@ The typesystem features :
 
 (** Syntax *)
 
-expr = 
+expr(e) = 
   | value                             (* values *)
   | built_in                          (* build in function *)
   | λx . expr                         (* abstraction *) 
@@ -39,7 +39,7 @@ A program can be seen as a list of expression. In Ligo those expressions takes a
 - Build_in fonction (mostly imported from libraries).
 - A value. 
   
-value =
+value(v) =
   | b                 (* instance of an éléments in B *)
   | λx . value        (* abstraction value *)
   | λX . value        (* type abstraction value *) 
@@ -52,7 +52,7 @@ In Ligo values are :
 - Records or variants element define as above.
 - Elements of Basic type (e.g. 1, bool, unit)
 
-type = 
+type(T) = 
   | B                (* Basic types *)
   | X                (* type variabe *)
   | type -> type     (* type of abstraction *)
@@ -61,6 +61,13 @@ type =
   | type type        (* operator application *)
   | { l_i : type_i } (* type of records *)
   | < l_i : type_i > (* type of variants *)
+  
+rows (ρ) = 
+  | ( )           (* Empty rows *)
+  | ( l = T | ρ ) (* Extension *)
+  | ρ1 * ρ2       (* Rows concatenation *)
+  | prj p         (* Projection *)
+ The projection operator remove unecessary labels. Those labels are determine by the type system
 
 Ligo is a staticaly type language using polymorphisme. Type can be any of:
 - A "Basic" build-in type.
@@ -71,7 +78,7 @@ Ligo is a staticaly type language using polymorphisme. Type can be any of:
 - Lambda expression of type with parametric type. i.e. when given a type produce a type. These are called operators
 - records and variants of types which are the types of respectively records and variants.
 
-kind =
+kind(K) =
   | *                (* kind of proper types *)
   | kind => kind     (* kind of operators *)
 
