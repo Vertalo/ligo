@@ -77,7 +77,8 @@ Ligo is a staticaly type language using polymorphisme. Type can be any of:
 - An universal type which is the type of a polymorphic fonction 
 (example for the last three : Id: forall X.X->X )
 - Lambda expression of type with parametric type. i.e. when given a type produce a type. These are called operators
-- records and variants of types which are the types of respectively records and variants.
+- records of types that is use to type records (e.g. {a = 1, b = true} as type {a : int, b : bool})
+- a list of types in "<>" used to type variant (e.g. <Tuesday=unit> as type <Monday=Unit | Tuesday=Unit | ... | Sunday=Unit>)
 
 kind(K) =
   | *                (* kind of proper types *)
