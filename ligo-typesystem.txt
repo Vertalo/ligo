@@ -20,9 +20,9 @@ The typesystem features :
 
 expr(e) = 
   | value                             (* values *)
-  | built_in                          (* build in function *)
+  | built_in                          (* built-in function *)
   | λx . expr                         (* abstraction *) 
-  | λX . expr                         (* type abstraction *) 
+  | ΛX . expr                         (* type abstraction *) 
   | expr expr                         (* application *)
   | { l_i = expr_i }                  (* record *)
   | { l_i = expr_i }.l_j              (* projection *)
@@ -34,23 +34,23 @@ A program can be seen as a list of expression. In Ligo those expressions takes a
 - The ascription of a type to an expression which is an indication from the programmer of the type of the expression
 - A variant element writen as above and the case block that adjust the control flow from the element's value.
 - A record element writen as above and the prejection to get the element corresponding to the label.
-- Lambda expression with parametric types or values. 
+- Lambda expression with values (λ) or parametric types (Λ).
 - Application of an expression to another expression.
-- Build_in fonction (mostly imported from libraries).
-- A value. 
-  
+- Built-in fonction (mostly imported from libraries).
+- A value, as described below.
+
 value(v) =
-  | b                 (* instance of an éléments in B *)
+  | b                 (* instance of an element in B *)
   | λx . value        (* abstraction value *)
-  | λX . value        (* type abstraction value *) 
+  | ΛX . value        (* type abstraction value *) 
   | {l_i = value_i }  (* record value *)
   | < l = value_i >   (* variant value *)
 
-Values are distinct from other expression from not being derivable to another expression.
+Values are distinct from other expressions from not being derivable to another expression.
 In Ligo values are :
 - Lambda expression with parametric types or values that yield a value (contrary to the expression conterpart)
 - Records or variants element define as above.
-- Elements of Basic type (e.g. 1, bool, unit)
+- Elements of Basic type (e.g. nat, bool, unit)
 
 type(T) = 
   | B                (* Basic types *)
@@ -67,13 +67,14 @@ rows (ρ) =
   | ( l = T | ρ ) (* Extension *)
   | ρ1 * ρ2       (* Rows concatenation *)
   | prj p         (* Projection *)
- The projection operator remove unecessary labels. Those labels are determine by the type system
+
+The projection operator removes unecessary labels. Those labels are determined by the type system
 
 Ligo is a staticaly type language using polymorphisme. Type can be any of:
-- A "Basic" build-in type.
-- A type variable which describe an undefine type for polymorphic function
-- An arrow type which is the type of function or lambda expression.
-- Universal type which is the type of polymorphic fonction 
+- A "Basic" built-in type.
+- A type variable which describe an undefined type for a polymorphic function
+- An arrow type which is the type of a function or lambda expression.
+- An universal type which is the type of a polymorphic fonction 
 (example for the last three : Id: forall X.X->X )
 - Lambda expression of type with parametric type. i.e. when given a type produce a type. These are called operators
 - records and variants of types which are the types of respectively records and variants.
@@ -84,15 +85,15 @@ kind(K) =
 
 Ligo also provide higher order polymorphism. All types are given a kind, which are to types what 
 types are to expressions.
-Kinds are either "*" the kind assign to proper types or double arrow kinds which are the kind of operators.
+Kinds are either "*" (the kind assigned to proper types) or double arrow kinds which are the kind of type-level operators (a.k.a type-level functions).
 
 Γ =
   | ()         (* empty context *)
   | Γ, x:type  (* expression variable binding *)
   | Γ, X::kind (* type variable binding *)
 
-Association between expressions and types and types and kinds are store in a context gamma (Γ).
-This context can be empty. Binding between expression variable and type and type variable and kind can be added following the given syntaxe.
+Association between expressions and types, and between types and kinds are store in a context gamma (Γ).
+This context can be empty. Binding between expression variable and type and type variable and kind can be added following the given syntax.
 
 (** Evaluation **)
 
@@ -104,10 +105,10 @@ In an application expression, the left expression is evaluated until it becomes 
 (λx:T.e) v -> [ x -> v ] e                        (* E-APPABS *)
 When an abstraction is applied to a value, the value parameter in the abstraction is replace by the value it is applied to
 ej -> ej' ==> {vi, ej, ek} -> {vi, ej', ek}       (* E-RECORDS *)
-In a records, the expression are evaluated from left to right until each reach a value
+In a record, the expressions are evaluated from left to right until each reach a value
 e -> e' ==> e.i -> e'.i                           (* E-PROJ *)
 {vi}.j -> vj                                      (* E-PROJTUPLE *)
-In a projection, the recors is evaluated first and the the porjection is replace by the corresponding value
+In a projection, the record is evaluated first and the the projection is replaced by the corresponding value
 ei -> ei' ==> <li=ei> as T -> <li=ei'> as T       (* E-VARIANT *)
 In a variant element, we evaluate the expression inside the element.
 e0 -> e0' ==> case e0 of <li=xi> => ei 
@@ -122,7 +123,7 @@ The ascription is unecessary for evaluation and removed
 (** In progress 
 (** Kinding **)
 X::K in Γ ==> Γ ⊢ X :: K                                  (* K-TVAR *)
-Γ,X::K1 ⊢ T2::K2 ==> Γ ⊢ λX::K1.T2 :: K1 =>K2             (* K-TAbS *)
+Γ,X::K1 ⊢ T2::K2 ==> Γ ⊢ ΛX::K1.T2 :: K1 =>K2             (* K-TAbS *)
 Γ ⊢ T1 :: K11 => K12, Γ ⊢ T2 :: K11 ==> Γ ⊢ T1 T2 :: K12  (* K-TAPP *)
 Γ ⊢ T1 :: *  Γ ⊢ T2 :: * ==> Γ ⊢ T1 -> T2 :: *            (* K-ARROW *)
 
@@ -131,10 +132,10 @@ X::K in Γ ==> Γ ⊢ X :: K                                  (* K-TVAR *)
 Γ ⊢ T ≡ S :: K ==> Γ ⊢ S ≡ T :: K                                      (* Q-SYMM *)
 Γ ⊢ S ≡ U :: K   Γ ⊢ U ≡ T :: K ==> Γ ⊢ S ≡ T :: K                     (* Q-TRANS *)
 Γ, X :: K1 ⊢ T2 :: K2 Γ ⊢ T1 :: K1                                     (* Q-BETA *)
-    ==> Γ ⊢ (λX ::K1 .T2) T1 ≡ {X → T1}T2 :: K2
+    ==> Γ ⊢ (ΛX ::K1 .T2) T1 ≡ {X → T1}T2 :: K2
 Γ ⊢ S :: K1 => K2 and Γ ⊢ T :: K1 => K2 and                            (* Q-EXT *)
     Γ, X::K1 ⊢ S X ≡ T X::K2 ==> Γ ⊢ S ≡ T : K1 => k2
-Γ,X::K1 ⊢ S2≡T2::K2 ==> Γ ⊢ λX::K1.S2 ≡ λX::K1.T2 :: K1=>K2            (* Q-TABS *)
+Γ,X::K1 ⊢ S2≡T2::K2 ==> Γ ⊢ ΛX::K1.S2 ≡ ΛX::K1.T2 :: K1=>K2            (* Q-TABS *)
 Γ ⊢ S1≡T1::K1 => K2 and Γ ⊢ S2≡T2::K1 ==> Γ ⊢ S1 S2 ≡ T1 T2 :: K2      (* Q-APP *)
 Γ ⊢ S1 ≡ T1 :: * and Γ ⊢ S2 ≡ T2 :: * ==> Γ ⊢ S1 -> S2 ≡ T1 -> T2 :: * (* Q-Arrow *)
 
