@@ -6,11 +6,10 @@ The typesystem features :
     - Polymorphism
     - Records
     - Variants
+    - Rows and row polymorphism
     
 * contraintes: prédicat(type, type, type, …) ou type ~ type (qui dit que les deux types doivent être unifiables), pas le même kind que les types
 * typeclasses: (forall alpha, constraint(…) => …`
-* rangées \rho (pas le même kind que les type variables), qui sont des maps de labels vers types
-* polymorphisme de rangée (forall rho, …)
 * Quand t'as ça, on verra pour avoir un first-class environment, ajouter le kinding, et quelques opérations de rangée 
 
 
@@ -59,15 +58,9 @@ type(T) =
   | forall X.type    (* universal type *)
   | lambda X.type    (* operator abstraction *)
   | type type        (* operator application *)
-  | { l_i : type_i } (* type of records *)
-  | < l_i : type_i > (* type of variants *)
+  | Πρ               (* type of records *)
+  | Σρ               (* type of variants *)
   
-rows (ρ) = 
-  | ( )           (* Empty rows *)
-  | ( l = T | ρ ) (* Extension *)
-  | ρ1 * ρ2       (* Rows concatenation *)
-  | prj p         (* Projection *)
-
 The projection operator removes unecessary labels. Those labels are determined by the type system
 
 Ligo is a staticaly type language using polymorphisme. Type can be any of:
@@ -83,10 +76,25 @@ Ligo is a staticaly type language using polymorphisme. Type can be any of:
 kind(K) =
   | *                (* kind of proper types *)
   | kind => kind     (* kind of operators *)
+  | Ρ                (* kind of rows *)
+  | Ρ((l_i))         (* kind of rows without label (l_i) *)
 
 Ligo also provide higher order polymorphism. All types are given a kind, which are to types what 
 types are to expressions.
 Kinds are either "*" (the kind assigned to proper types) or double arrow kinds which are the kind of type-level operators (a.k.a type-level functions).
+
+rows (ρ) = 
+  | ( )           (* Empty rows *)
+  | ( l = T | ρ ) (* Extension *)
+  | (ρ1 | ρ2)     (* Rows concatenation *)
+  | prj p         (* Projection *)
+
+Rows lives at the same level as type but are member of the row kind. They represent list of string and types pair and are use to generate types
+of records and variants.
+There are few built-int operation on rows. Concatenation and projection. 
+The projection reduce the fields of the rows to only those necessary in the context.
+Concatenation unite the fileds of both rows into a single rows, these can leads to shadowing when fields are present in both field.
+Extension are special case of concatenation
 
 Γ =
   | ()         (* empty context *)
