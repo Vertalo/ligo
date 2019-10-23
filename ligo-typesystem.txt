@@ -20,8 +20,6 @@ The typesystem features :
 expr(e) = 
   | value                             (* values *)
   | built_in                          (* built-in function *)
-  | λx . expr                         (* abstraction *) 
-  | ΛX . expr                         (* type abstraction *) 
   | expr expr                         (* application *)
   | { l_i = expr_i }                  (* record *)
   | { l_i = expr_i }.l_j              (* projection *)
@@ -40,8 +38,8 @@ A program can be seen as a list of expression. In Ligo those expressions takes a
 
 value(v) =
   | b                 (* instance of an element in B *)
-  | λx . value        (* abstraction value *)
-  | ΛX . value        (* type abstraction value *) 
+  | λx . expr         (* abstraction *)
+  | ΛX . expr         (* type abstraction *) 
   | {l_i = value_i }  (* record value *)
   | < l = value_i >   (* variant value *)
 
