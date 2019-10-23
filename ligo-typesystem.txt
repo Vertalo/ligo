@@ -1,5 +1,6 @@
-(** Lygo Typesystem
-This file present a formal description of the Ligo typesystem
+(** Ligo language version ++ 
+
+This file present a formal description of the Ligo language
 
 The typesystem features :
     - Basic Types
@@ -20,11 +21,13 @@ The typesystem features :
 expr(e) = 
   | value                             (* values *)
   | built_in                          (* built-in function *)
+  | λx . expr                         (* abstraction *) 
+  | ΛX . expr                         (* type abstraction *) 
   | expr expr                         (* application *)
   | { l_i = expr_i }                  (* record *)
   | { l_i = expr_i }.l_j              (* projection *)
   | < l = expr >                      (* variant *)
-  | case t of < l_i = x_i > => expr_i (* case *)
+  | case e of < l_i = x_i > => expr_i (* case *)
   | expr as type                      (* ascription *)
 
 A program can be seen as a list of expression. In Ligo those expressions takes any of those from :
@@ -38,8 +41,8 @@ A program can be seen as a list of expression. In Ligo those expressions takes a
 
 value(v) =
   | b                 (* instance of an element in B *)
-  | λx . expr         (* abstraction *)
-  | ΛX . expr         (* type abstraction *) 
+  | λx . expr         (* abstraction value *)
+  | ΛX . expr         (* type abstraction value *) 
   | {l_i = value_i }  (* record value *)
   | < l = value_i >   (* variant value *)
 
