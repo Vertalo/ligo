@@ -1,0 +1,59 @@
+(** 
+
+Ligo language description
+
+This file present a formal description of the Ligo language
+
+*)
+
+(** Syntax **)
+variables(x)
+label (l)
+
+expression(e) = 
+  | literal                        (* values *)
+  | built_in                       (* built-in function *)
+     (* built_in (e_i) ? *)
+  | x                              (* variables *)
+  | λx . expr                      (* lambda *)
+  | e1 e2                          (* application *)
+  | let x = e1 in e2               (* let in *)
+  | ( e_i )                        (* tuple *)
+  | l of e                         (* constructor *)
+  | { l_i = e_i }                  (* record *)
+  | [ e1_i = e2_i ]                (* map *)
+  | [[ e1_i = e2_i ]]              (* big map *)
+  | [ e_i ]                        (* list *)
+  | { e_i }                        (* set *)
+  | e[...,a_i,...]                 (* accessor *)
+  | e.e                            (* look_up *)
+  | match e with matching          (* matching *)
+  | e; e                           (* sequence *)
+  | while e do e                   (* loop *)
+  | x[...,a_i,...] = e             (* assign *)   
+  | SKIP                           (* skip *)
+  | e as T                         (* ascription *)
+
+access(a) = 
+  | int      (* for tuples *)
+  | string   (* for record *)
+  | e        (* for map *)
+
+literal(v) =
+  | unit 
+  | bool
+  | int
+  | nat
+  | mutez
+  | string
+  | bytes
+  | address
+  | timestamp
+  | operation
+ 
+matching = 
+  | { true => e; false => e;}          (* match_bool *)
+  | { nil  => e; cons(hd::tl) => e;}   (* match_list *)
+  | { none => e; some(x)  => e;}       (* match_option *)
+  | (x_i)  => e                        (* match_tuple *)
+  | (constructor_i(x_i) => e_i )       (* match_variant *)

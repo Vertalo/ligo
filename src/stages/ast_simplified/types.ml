@@ -46,6 +46,9 @@ and expression' =
   (* Base *)
   | E_literal of literal
   | E_constant of (name * expr list) (* For language constants, like (Cons hd tl) or (plus i j) *)
+  (* Can you explain why E_constant is of type name * expr list ? 
+     Why can we have `cons hd tl` insterpreted as constant expr expr ? 
+  *)
   | E_variable of name
   | E_lambda of lambda
   | E_application of (expr * expr)
@@ -57,6 +60,8 @@ and expression' =
   (* E_record *)
   | E_record of expr_map
   | E_accessor of (expr * access_path)
+  (* I don't understand how the access_type (eg access_tuple is link to the expr type) 
+  *)
   (* Data Structures *)
   | E_map of (expr * expr) list
   | E_big_map of (expr * expr) list
