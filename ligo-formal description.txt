@@ -9,9 +9,22 @@ This file present a formal description of the Ligo language
 (** Syntax **)
 variables(x)
 label (l)
+constructor (c)
+
+declaration(d) = 
+  | type x is te                   (* Type declaration *)
+  | const x (: te) = e             (* Const declaration *)
+
+type_expression(te) =
+  | (* te_i)                       (* Type tuple *)
+  | (| l_i of te_i)                (* Type sum *)
+  | { l_i : te_i }                 (* Type record *)
+  | te1 -> te2                     (* function *)
+  | l                              (* variable *)
+  | l (te_i)                       (* type of built in function *)
 
 expression(e) = 
-  | literal                        (* values *)
+  | value                          (* values *)
   | built_in                       (* built-in function *)
      (* built_in (e_i) ? *)
   | x                              (* variables *)
@@ -19,18 +32,18 @@ expression(e) =
   | e1 e2                          (* application *)
   | let x = e1 in e2               (* let in *)
   | ( e_i )                        (* tuple *)
-  | l of e                         (* constructor *)
+  | c e                            (* constructor *)
   | { l_i = e_i }                  (* record *)
   | [ e1_i = e2_i ]                (* map *)
   | [[ e1_i = e2_i ]]              (* big map *)
   | [ e_i ]                        (* list *)
   | { e_i }                        (* set *)
-  | e[...,a_i,...]                 (* accessor *)
-  | e.e                            (* look_up *)
+  | e(.ai)                         (* accessor *)
+  | e1[e2]                         (* look_up *)
   | match e with matching          (* matching *)
-  | e; e                           (* sequence *)
-  | while e do e                   (* loop *)
-  | x[...,a_i,...] = e             (* assign *)   
+  | e1; e2                         (* sequence *)
+  | while e1 do e2                 (* loop *)
+  | x.(ai) = e                     (* assign *)   
   | SKIP                           (* skip *)
   | e as T                         (* ascription *)
 
@@ -39,7 +52,12 @@ access(a) =
   | string   (* for record *)
   | e        (* for map *)
 
-literal(v) =
+value(v) = 
+  | literal                        (* values of built-in types *)
+  | const v                        (* values of construct types*)
+  | λx . expr                      (* lambda *)
+
+literal =
   | unit 
   | bool
   | int
@@ -51,9 +69,71 @@ literal(v) =
   | timestamp
   | operation
  
-matching = 
+matching(m) = 
   | { true => e; false => e;}          (* match_bool *)
   | { nil  => e; cons(hd::tl) => e;}   (* match_list *)
   | { none => e; some(x)  => e;}       (* match_option *)
   | (x_i)  => e                        (* match_tuple *)
-  | (constructor_i(x_i) => e_i )       (* match_variant *)
+  | (const_i(xi) => ei )               (* match_variant *)
+
+matching value (mv) = 
+  | { true => v; false => v;}          (* match_bool value *)
+  | { nil  => v; cons(hd::tl) => v;}   (* match_list value *)
+  | { none => v; some(x)  => v;}       (* match_option value *)
+  | (x_i)  => v                        (* match_tuple value *)
+  | (const_i(xi) => vi )               (* match_variant value *)
+
+
+(** Evaluation of expression **)
+
+(* Values and variables are not evaluted *)
+built_in (e_i) -> built_in_result                                                                   (* E-BUILTIN *) (* evaluated depending on each case *)
+(λx.e) v -> [ x -> v ] e                                                                            (* E-LAMBDA *)
+e1 -> e1' ==> e1 e2 -> e1' e2                                                                       (* E-APP1 *)
+e2 -> e2' ==> v1 e2 -> v1 e2'                                                                       (* E-APP2 *)
+e1 -> e1' ==> let x=e1 in e2 -> let x=e1' in e2                                                     (* E-LET *)
+let x=v1 in e2 -> [x->v1] e2                                                                        (* E-LETIN *) 
+e -> e' ==> c e -> c e'                                                                             (* E-CONST *)
+ej -> ej' ==> (vi, ej, ek) -> (vi, ej', ek)                                                         (* E-TUPLES *)
+ej -> ej' ==> {li=vi, lj=ej, lk=ek} -> {li=vi, lj=ej', lk=ek}                                       (* E-RECORDS *)
+e2j -> e2j' ==> [e1i=vi, e1j=e2j, e1k=e2k] -> [e1i=vi, e1j=e2j', e1k=e2k]                           (* E-MAP *)
+e2j -> e2j' ==> [[e1i=vi, e1j=e2j, e1k=e2k]] -> [[e1i=vi, e1j=e2j', e1k=e2k]]                       (* E-BIGMAP *)
+ej -> ej' ==> [vi, ej, ek] -> [vi, ej', ek]                                                         (* E-LIST *)
+ej -> ej' ==> {vi, ej, ek} -> {vi, ej', ek}                                                         (* E-SET *)
+e -> e' ==> e(.ai) -> e'(.ai)                                                                       (* E-ACCESS *)
+(* look_up *)
+(vi)[j]      ==> vj                                                                                 (* E-LUPTUPLE *) 
+{li=vi}[lj]  ==> vj                                                                                 (* E-LUPRECORD *)
+[ei=vi][ej]  ==> vj                                                                                 (* E-LUPMAP *)
+[[ei=vi]][ej]  ==> vj                                                                               (* E-LUPBIGMAP *)
+[vi][j]      ==> vj                                                                                 (* E-LUPLIST *)
+{vi}[j]      ==> vj                                                                                 (* E-LUPSET *)
+
+(* matching *)
+e -> e' ==> match e with m -> match e' with m                                                       (* E-MATCH1 *)
+m -> m' ==> match v with m -> match v  with m'                                                      (* E-MATCH2 *)
+match v with mv -> v' if v => v' in mv                                                              (* E-MATCH  *)
+e1 -> e1' ==> { true => e1; false => e2;} -> { true => e1'; false => e2;}                           (* E-MAcTHBOOL1 *)
+e2 -> e2' ==> { true => v1; false => e2;} -> { true => v1; false => e2';}                           (* E-MAcTHBOOL2 *)
+e1 -> e1' ==> { nil  => e1; cons(hd::tl) => e2;} -> { nil => e1'; cons(hd::tl) => e2;}              (* E-MATCHLIST1 *)
+e2 -> e2' ==> { nil  => v1; cons(hd::tl) => e2;} -> { nil => v1; cons(hd::tl) => e2';}              (* E-MATCHLIST2 *)
+e1 -> e1' ==> { none => e1; some(x)  => e2;} -> { none => e1'; some(x) => e2; }                     (* E-MATCHOPT1 *)
+e2 -> e2' ==> { none => v1; some(x)  => e2;} -> { none => v1'; some(x) => e2'; }                    (* E-MATCHOPT2 *)
+e -> e' ==> (x_i)  => e -> (x_i) => e'                                                              (* E-MATCHTUPLE *)            
+ej -> ej' ==> (ci(xi) => vi, cj(xj) => ej, ck(xk) => ek) -> (ci(xi) => vi, cj(xj)=>ej', ck(xk)=>ek) (* E-MATCHVARIANT *)    
+
+
+e1 -> e1' ==> e1; e2 -> e1'; e2                                                                     (* E-SEQ *)
+unit; e2 ==> e2                                                                                     (* E-SEQNEXT *)
+e1 -> e1' ==> while e1 then e2 -> while e1' then e2                                                 (* E-LOOP *)
+while true then e2 -> e2; while e1 then e2                                                          (* E-LOOPTRUE *)
+while false then e2 -> unit                                                                         (* E-LOOPFALSE *)
+e -> e' ==> x(.ai) = e -> x(.ai) = e'                                                               (* E-ASSIGN *)
+x(.ai) = v -> x'(.ai) with x' is x with field (.ai) replace by v                                    (* E-ASSIGN2 *)
+SKIP -> unit                                                                                        (* E-SKIP *)
+e -> e' => e as T -> e' as T                                                                        (* E-ASCR1 *)
+v as T  => v                                                                                        (* E-ASCR2 *)  
+
+(** Derive form **)
+e1; e2 is  (λx:Unit.e1) e2 with x not a free variable in e1 
+let x=e1 in e2 is (λx:T1.e2) e1 
