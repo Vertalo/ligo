@@ -1,0 +1,222 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+\title{Ligo Formal Description}
+\lstset{language=caml}
+\begin{document}
+\maketitle
+\section*{ Syntax }
+
+variables(x)
+
+label (l)
+
+constructor (c)
+
+\begin{align*}
+declaration(d) = 
+\\
+ \ &|\ type\ x\ is\ te                \ \tag{Type\ declaration}
+\\
+ \ &|\ const\ x\ (:\ te)\ =\ e          \ \tag{Const\ declaration}
+\end{align*}
+
+\begin{align*}
+type expression(te) =
+\\
+ \ &|\ (*\ te_i)                    \ \tag{Type\ tuple}
+\\
+ \ &|\ (|\ l_i\ of\ te_i)             \ \tag{Type\ sum}
+\\
+ \ &|\ \{\ l_i\ :\ te_i\ \}              \ \tag{Type\ record}
+\\
+ \ &|\ te1\ \rightarrow \ te2                  \ \tag{function}
+\\
+ \ &|\ l                           \ \tag{variable}
+\\
+ \ &|\ l\ (te_i)                    \ \tag{type\ of\ built\ in\ function}
+\end{align*}
+
+\begin{align*}
+expression(e) = 
+\\
+ \ &|\ value                       \ \tag{values}
+\\
+ \ &|\ built_in                    \ \tag{built-in\ function}
+\\
+ \ &|\ x                           \ \tag{variables}
+\\
+ \ &|\ \lambda x\ .\ expr                   \ \tag{lambda}
+\\
+ \ &|\ e1\ e2                       \ \tag{application}
+\\
+ \ &|\ let\ x\ =\ e1\ in\ e2            \ \tag{let\ in}
+\\
+ \ &|\ (\ e_i\ )                     \ \tag{tuple}
+\\
+ \ &|\ c\ e                         \ \tag{constructor}
+\\
+ \ &|\ \{\ l_i\ =\ e_i\ \}               \ \tag{record}
+\\
+ \ &|\ [\ e1_i\ =\ e2_i\ ]             \ \tag{map}
+\\
+ \ &|\ [[\ e1_i\ =\ e2_i\ ]]           \ \tag{big\ map}
+\\
+ \ &|\ [\ e_i\ ]                     \ \tag{list}
+\\
+ \ &|\ \{\ e_i\ \}                     \ \tag{set}
+\\
+ \ &|\ e(.ai)                      \ \tag{accessor}
+\\
+ \ &|\ e1[e2]                      \ \tag{look\ up}
+\\
+ \ &|\ match\ e\ with\ matching       \ \tag{matching}
+\\
+ \ &|\ e1;\ e2                      \ \tag{sequence}
+\\
+ \ &|\ while\ e1\ do\ e2              \ \tag{loop}
+\\
+ \ &|\ x.(a_i)\ =\ e                 \ \tag{assign}
+\\
+ \ &|\ SKIP                        \ \tag{skip}
+\\
+ \ &|\ e\ as\ T                      \ \tag{ascription}
+\end{align*}
+
+\begin{align*}
+access(a) = 
+\\
+ \ &|\ int   \ \tag{for\ tuples}
+\\
+ \ &|\ string\ \tag{for\ record}
+\\
+ \ &|\ e     \ \tag{for\ map}
+\end{align*}
+
+\begin{align*}
+value(v) = 
+\\
+ \ &|\ literal                     \ \tag{values\ of\ built-in\ types}
+\\
+ \ &|\ const\ v                     \ \tag{values\ of\ construct\ types}
+\\
+ \ &|\ \lambda x\ .\ expr                   \ \tag{lambda}
+\end{align*}
+
+\begin{align*}
+literal =
+\\
+ \ &|\ unit    \ \tag{}
+\\
+ \ &|\ bool    \ \tag{}
+\\
+ \ &|\ int    \ \tag{}
+\\
+ \ &|\ nat    \ \tag{}
+\\
+ \ &|\ mutez    \ \tag{}
+\\
+ \ &|\ string    \ \tag{}
+\\
+ \ &|\ bytes    \ \tag{}
+\\
+ \ &|\ address    \ \tag{}
+\\
+ \ &|\ timestamp    \ \tag{}
+\\
+ \ &|\ operation    \ \tag{}
+\end{align*}
+ 
+\begin{align*}
+matching(m) = 
+\\
+ \ &|\ \{\ true\ =>\ e;\ false\ =>\ e;\}       \ \tag{match\ bool}
+\\
+ \ &|\ \{\ nil \ =>\ e;\ cons(hd::tl)\ =>\ e;\}\ \tag{match\ list}
+\\
+ \ &|\ \{\ none\ =>\ e;\ some(x) \ =>\ e;\}    \ \tag{match\ option}
+\\
+ \ &|\ (x_i) \ =>\ e                     \ \tag{match\ tuple}
+\\
+ \ &|\ (const_i(x_i)\ =>\ e_i\ )          \ \tag{match\ variant}
+\end{align*}
+
+\begin{align*}
+matching value (mv) = 
+\\
+ \ &|\ \{\ true\ =>\ v;\ false\ =>\ v;\}       \ \tag{match\ bool\ value}
+\\
+ \ &|\ \{\ nil \ =>\ v;\ cons(hd::tl)\ =>\ v;\}\ \tag{match\ list\ value}
+\\
+ \ &|\ \{\ none\ =>\ v;\ some(x) \ =>\ v;\}    \ \tag{match\ option\ value}
+\\
+ \ &|\ (x_i) \ =>\ v                     \ \tag{match\ tuple\ value}
+\\
+ \ &|\ (const_i(x_i)\ =>\ v_i\ )          \ \tag{match\ variant\ value}
+\end{align*}
+
+
+\section*{ Evaluation of expression }
+
+\subsection*{ base }
+Values and variables are not evaluted
+\begin{equation}\frac{}{built_in\ (e_i)\ \rightarrow \ built_in_result                           \ (*\ evaluated\ depending\ on\ each\ case\ *)}\ \tag{\ E-BUILTIN\ }\end{equation}
+\begin{equation}\frac{}{(\lambda x.e)\ v\ \rightarrow \ [\ x\ \rightarrow \ v\ ]\ e}\ \tag{\ E-LAMBDA\ }\end{equation}
+\begin{equation}\frac{e1\ \rightarrow \ e1'}{e1\ e2\ \rightarrow \ e1'\ e2}\ \tag{\ E-APP1\ }\end{equation}
+\begin{equation}\frac{e2\ \rightarrow \ e2'}{v1\ e2\ \rightarrow \ v1\ e2'}\ \tag{\ E-APP2\ }\end{equation}
+\begin{equation}\frac{e1\ \rightarrow \ e1'}{let\ x=e1\ in\ e2\ \rightarrow \ let\ x=e1'\ in\ e2}\ \tag{\ E-LET\ }\end{equation}
+\begin{equation}\frac{}{let\ x=v1\ in\ e2\ \rightarrow \ [x\rightarrow v1]\ e2}\ \tag{\ E-LETIN\ }\end{equation} 
+\begin{equation}\frac{e1\ \rightarrow \ e1'}{e1;\ e2\ \rightarrow \ e1';\ e2}\ \tag{\ E-SEQ\ }\end{equation}
+\begin{equation}\frac{}{unit;\ e2\ \rightarrow \ e2}\ \tag{\ E-SEQNEXT\ }\end{equation}
+\begin{equation}\frac{e1\ \rightarrow \ e1'}{while\ e1\ then\ e2\ \rightarrow \ while\ e1'\ then\ e2}\ \tag{\ E-LOOP\ }\end{equation}
+\begin{equation}\frac{}{while\ true(=e1)\ then\ e2\ \rightarrow \ e2;\ while\ e1\ then\ e2}\ \tag{\ E-LOOPTRUE\ }\end{equation}
+\begin{equation}\frac{}{while\ false\ then\ e2\ \rightarrow \ unit}\ \tag{\ E-LOOPFALSE\ }\end{equation}
+\begin{equation}\frac{}{SKIP\ \rightarrow \ unit}\ \tag{\ E-SKIP\ }\end{equation}
+\begin{equation}\frac{e\ \rightarrow \ e'}{e\ as\ T\ \rightarrow \ e'\ as\ T}\ \tag{\ E-ASCR1\ }\end{equation}
+\begin{equation}\frac{}{v\ as\ T \ \rightarrow \ v}\ \tag{\ E-ASCR2\ }\end{equation}  
+
+\subsection*{ data structure }
+\begin{equation}\frac{e\ \rightarrow \ e'}{c\ e\ \rightarrow \ c\ e'}\ \tag{\ E-CONST\ }\end{equation}
+\begin{equation}\frac{e_j\ \rightarrow \ e_j'}{(v_i,\ e_j,\ e_k)\ \rightarrow \ (v_i,\ e_j',\ e_k)}\ \tag{\ E-TUPLES\ }\end{equation}
+\begin{equation}\frac{e_j\ \rightarrow \ e_j'}{\{l_i=v_i,\ l_j=e_j,\ l_k=e_k\}\ \rightarrow \ \{l_i=v_i,\ l_j=e_j',\ l_k=e_k\}}\ \tag{\ E-RECORDS\ }\end{equation}
+\begin{equation}\frac{e2_j\ \rightarrow \ e2_j'}{[e1_i=v_i,\ e1_j=e2_j,\ e1_k=e2_k]\ \rightarrow \ [e1_i=v_i,\ e1_j=e2_j',\ e1_k=e2_k]}\ \tag{\ E-MAP\ }\end{equation}
+\begin{equation}\frac{e2_j\ \rightarrow \ e2_j'}{[[e1_i=v_i,\ e1_j=e2_j,\ e1_k=e2_k]]\ \rightarrow \ [[e1_i=v_i,\ e1_j=e2_j',\ e1_k=e2_k]]}\ \tag{\ E-BIGMAP\ }\end{equation}
+\begin{equation}\frac{e_j\ \rightarrow \ e_j'}{[v_i,\ e_j,\ e_k]\ \rightarrow \ [v_i,\ e_j',\ e_k]}\ \tag{\ E-LIST\ }\end{equation}
+\begin{equation}\frac{e_j\ \rightarrow \ e_j'}{\{v_i,\ e_j,\ e_k\}\ \rightarrow \ \{v_i,\ e_j',\ e_k\}}\ \tag{\ E-SET\ }\end{equation}
+\begin{equation}\frac{e\ \rightarrow \ e'}{e(.a_i)\ \rightarrow \ e'(.a_i)}\ \tag{\ E-ACCESS\ }\end{equation}
+
+\subsection*{ look up }
+\begin{equation}\frac{}{(v_i)[j]     \ \rightarrow \ v_j}\ \tag{\ E-LUPTUPLE\ }\end{equation} 
+\begin{equation}\frac{}{\{l_i=v_i\}[lj] \ \rightarrow \ v_j}\ \tag{\ E-LUPRECORD\ }\end{equation}
+\begin{equation}\frac{}{[e_i=v_i][ej] \ \rightarrow \ v_j}\ \tag{\ E-LUPMAP\ }\end{equation}
+\begin{equation}\frac{}{[[e_i=v_i]][ej] \ \rightarrow \ v_j}\ \tag{\ E-LUPBIGMAP\ }\end{equation}
+\begin{equation}\frac{}{[v_i][j]     \ \rightarrow \ v_j}\ \tag{\ E-LUPLIST\ }\end{equation}
+\begin{equation}\frac{}{\{v_i\}[j]     \ \rightarrow \ v_j}\ \tag{\ E-LUPSET\ }\end{equation}
+\begin{equation}\frac{e\ \rightarrow \ e'}{x(.a_i)\ =\ e\ \rightarrow \ x(.a_i)\ =\ e'}\ \tag{\ E-ASSIGN\ }\end{equation}
+\begin{equation}\frac{}{x(.a_i)\ =\ v\ \rightarrow \ x'(.a_i)\ with\ x'\ as\ x\ with\ field\ (.a_i)\ replace\ by\ v}\ \tag{\ E-ASSIGN2\ }\end{equation}
+
+\subsection*{ matching }
+\begin{equation}\frac{e\ \rightarrow \ e'}{match\ e\ with\ m\ \rightarrow \ match\ e'\ with\ m}\ \tag{\ E-MATCH1\ }\end{equation}
+\begin{equation}\frac{m\ \rightarrow \ m'}{match\ v\ with\ m\ \rightarrow \ match\ v \ with\ m'}\ \tag{\ E-MATCH2\ }\end{equation}
+\begin{equation}\frac{}{match\ v\ with\ mv\ \rightarrow \ v'\ if\ v\ =>\ v'\ in\ mv}\ \tag{\ E-MATCH \ }\end{equation}
+\begin{equation}\frac{e1\ \rightarrow \ e1'}{\{\ true\ =>\ e1;\ false\ =>\ e2;\}\ \rightarrow \ \{\ true\ =>\ e1';\ false\ =>\ e2;\}}\ \tag{\ E-MAcTHBOOL1\ }\end{equation}
+\begin{equation}\frac{e2\ \rightarrow \ e2'}{\{\ true\ =>\ v1;\ false\ =>\ e2;\}\ \rightarrow \ \{\ true\ =>\ v1;\ false\ =>\ e2';\}}\ \tag{\ E-MAcTHBOOL2\ }\end{equation}
+\begin{equation}\frac{e1\ \rightarrow \ e1'}{\{\ nil \ =>\ e1;\ cons(hd::tl)\ =>\ e2;\}\ \rightarrow \ \{\ nil\ =>\ e1';\ cons(hd::tl)\ =>\ e2;\}}\ \tag{\ E-MATCHLIST1\ }\end{equation}
+\begin{equation}\frac{e2\ \rightarrow \ e2'}{\{\ nil \ =>\ v1;\ cons(hd::tl)\ =>\ e2;\}\ \rightarrow \ \{\ nil\ =>\ v1;\ cons(hd::tl)\ =>\ e2';\}}\ \tag{\ E-MATCHLIST2\ }\end{equation}
+\begin{equation}\frac{e1\ \rightarrow \ e1'}{\{\ none\ =>\ e1;\ some(x) \ =>\ e2;\}\ \rightarrow \ \{\ none\ =>\ e1';\ some(x)\ =>\ e2;\ \}}\ \tag{\ E-MATCHOPT1\ }\end{equation}
+\begin{equation}\frac{e2\ \rightarrow \ e2'}{\{\ none\ =>\ v1;\ some(x) \ =>\ e2;\}\ \rightarrow \ \{\ none\ =>\ v1';\ some(x)\ =>\ e2';\ \}}\ \tag{\ E-MATCHOPT2\ }\end{equation}
+\begin{equation}\frac{e\ \rightarrow \ e'}{(x_i) \ =>\ e\ \rightarrow \ (x_i)\ =>\ e'}\ \tag{\ E-MATCHTUPLE\ }\end{equation}            
+\begin{equation}\frac{e_j\ \rightarrow \ e_j'}{(c_i(x_i)\ =>\ v_i,\ c_j(x_j)\ =>\ e_j,\ c_k(x_k)\ =>\ e_k)\ \rightarrow \ (c_i(x_i)\ =>\ v_i,\ c_j(x_j)=>e_j',\ c_k(x_k)=>e_k)}\ \tag{\ E-MATCHVARIANT\ }\end{equation}    
+
+
+
+\section*{ Derive form }
+\begin{equation}e1;\ e2\ is \ (\lambda x:Unit.e1)\ e2\ with\ x\ not\ a\ free\ variable\ in\ e1 \ \end{equation}
+\begin{equation}let\ x=e1\ in\ e2\ is\ (\lambda x:T1.e2)\ e1 \ \end{equation}
+\end{document}
