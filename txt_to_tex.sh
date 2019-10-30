@@ -41,7 +41,7 @@ sed \
     }" \
     -e "s/^\([^|]*\) ==> \(.*[^ ]\)\( *\)(\*\(.*\)\*)/\\\begin{equation}\\\frac{\1}{\2} \\\tag{\4}\\\end{equation}/" \
     -e "s/^\([^|]*\)->\(.*[^ ]\) *(\*\(.*\)\*)/\\\begin{equation}\1->\2 \\\tag{\3}\\\end{equation}/" \
-    -e "s/^\([^|]*\) is \(.*\)/\\\begin{equation}\1 is \2 \\\end{equation}/" \
+    -e "s/^\([^|]*\) ==== \(.*\)/\\\begin{equation*}\1 \\\iff \2 \\\end{equation*}/" \
     -e "s/(\*\*\(.*\)\*\*)/\\\section\*{\1}/g" \
     -e "s/^(\*\(.*\)\*)/\\\subsection\*{\1}/g" \
     -e "/^\\\begin/ s/ \([^ ]\)/\\\ \1/g" \

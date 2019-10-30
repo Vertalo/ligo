@@ -8,14 +8,14 @@ constructor (c)
 
 declaration (d) = 
   | type x is te                   (* Type declaration *)
-  | const x (: te) = e             (* Const declaration *)
+  | const x (: te) = e             (* Constant declaration *)
 
 type expression (te) =
-  | (* te_i)                       (* Type tuple *)
-  | (| l_i of te_i)                (* Type sum *)
-  | { l_i : te_i }                 (* Type record *)
-  | te1 -> te2                     (* function *)
-  | l                              (* variable *)
+  | (* te_i)                       (* type of tuple *)
+  | (| l_i of te_i)                (* type of sum *)
+  | { l_i : te_i }                 (* type of record *)
+  | te1 -> te2                     (* type of function *)
+  | l                              (* type of variable *)
   | l (te_i)                       (* type of built in function *)
 
 expression (e) = 
@@ -134,5 +134,5 @@ e_j -> e_j' ==> (c_i(x_i) => v_i, c_j(x_j) => e_j, c_k(x_k) => e_k) -> (c_i(x_i)
 
 
 (** Derive form **)
-e1; e2 is  (λx:Unit.e1) e2 with x not a free variable in e1 
-let x=e1 in e2 is (λx:T1.e2) e1 
+e1; e2 ====  (λx:Unit.e1) e2 with x not a free variable in e1 
+let x=e1 in e2 ==== (λx:T1.e2) e1 

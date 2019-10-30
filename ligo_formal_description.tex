@@ -29,20 +29,20 @@ declaration\ (d)\ =
 \\
  \ &|\ type\ x\ is\ te                 \tag{Type\ declaration}
 \\
- \ &|\ const\ x\ (:\ te)\ =\ e           \tag{Const\ declaration}
+ \ &|\ const\ x\ (:\ te)\ =\ e           \tag{Constant\ declaration}
 \end{align*}
 \begin{align*}
 type\ expression\ (te)\ =
 \\
- \ &|\ (*\ te_i)                     \tag{Type\ tuple}
+ \ &|\ (*\ te_i)                     \tag{type\ of\ tuple}
 \\
- \ &|\ (|\ l_i\ of\ te_i)              \tag{Type\ sum}
+ \ &|\ (|\ l_i\ of\ te_i)              \tag{type\ of\ sum}
 \\
- \ &| \{\ l_i\ :\ te_i \}               \tag{Type\ record}
+ \ &| \{\ l_i\ :\ te_i \}               \tag{type\ of\ record}
 \\
- \ &|\ te1\ \rightarrow \ te2                   \tag{function}
+ \ &|\ te1\ \rightarrow \ te2                   \tag{type\ of\ function}
 \\
- \ &|\ l                            \tag{variable}
+ \ &|\ l                            \tag{type\ of\ variable}
 \\
  \ &|\ l\ (te_i)                     \tag{type\ of\ built\ in\ function}
 \end{align*}
@@ -215,6 +215,6 @@ Values are not evaluted
 
 
 \section*{ Derive form }
-\begin{equation}e1;\ e2\ is \ (\lambda x:Unit.e1)\ e2\ with\ x\ not\ a\ free\ variable\ in\ e1 \ \end{equation}
-\begin{equation}let\ x=e1\ in\ e2\ is\ (\lambda x:T1.e2)\ e1 \ \end{equation}
+\begin{equation*}e1;\ e2\ \iff \ (\lambda x:Unit.e1)\ e2\ with\ x\ not\ a\ free\ variable\ in\ e1 \ \end{equation*}
+\begin{equation*}let\ x=e1\ in\ e2\ \iff\ (\lambda x:T1.e2)\ e1 \ \end{equation*}
 \end{document}
