@@ -27,110 +27,110 @@ constructor\ (c)
 \begin{align*}
 declaration\ (d)\ = 
 \\
- \ &|\ type\ x\ is\ te                 \tag{Type\ declaration}
+ \ &|\ type\ x\ is\ te                     \tag{Type\ declaration}
 \\
- \ &|\ const\ x\ (:\ te)\ =\ e           \tag{Constant\ declaration}
+ \ &|\ const\ x\ (:\ te)\ =\ e               \tag{Constant\ declaration}
 \end{align*}
 \begin{align*}
 type\ expression\ (te)\ =
 \\
- \ &|\ (*\ te_i)                     \tag{type\ of\ tuple}
+ \ &|\ (*\ te_i)                         \tag{type\ of\ tuple}
 \\
- \ &|\ (|\ l_i\ of\ te_i)              \tag{type\ of\ sum}
+ \ &|\ (|\ l_i\ of\ te_i)                  \tag{type\ of\ sum}
 \\
- \ &| \{\ l_i\ :\ te_i \}               \tag{type\ of\ record}
+ \ &| \{\ l_i\ :\ te_i \}                   \tag{type\ of\ record}
 \\
- \ &|\ te1\ \rightarrow \ te2                   \tag{type\ of\ function}
+ \ &|\ te1\ \rightarrow \ te2                       \tag{type\ of\ function}
 \\
- \ &|\ l                            \tag{type\ of\ variable}
+ \ &|\ l                                \tag{type\ of\ variable}
 \\
- \ &|\ l\ (te_i)                     \tag{type\ of\ built\ in\ function}
+ \ &|\ l\ (te_i)                         \tag{type\ of\ built\ in\ function}
 \end{align*}
 \begin{align*}
 expression\ (e)\ = 
 \\
- \ &|\ value                        \tag{values}
+ \ &|\ value                            \tag{values}
 \\
- \ &|\ built_in                     \tag{built-in\ function}
+ \ &|\ built_in                         \tag{built-in\ function}
 \\
- \ &|\ x                            \tag{variables}
+ \ &|\ x                                \tag{variables}
 \\
- \ &|\ \lambda x\ .\ expr                    \tag{lambda}
+ \ &|\ \lambda x\ .\ expr                        \tag{lambda}
 \\
- \ &|\ e1\ e2                        \tag{application}
+ \ &|\ e1\ e2                            \tag{application}
 \\
- \ &|\ let\ x\ =\ e1\ in\ e2             \tag{let\ in}
+ \ &|\ let\ x\ =\ e1\ in\ e2                 \tag{let\ in}
 \\
- \ &|\ (\ e_i\ )                      \tag{tuple}
+ \ &|\ (\ e_i\ )                          \tag{tuple}
 \\
- \ &|\ c\ e                          \tag{constructor}
+ \ &|\ c\ e                              \tag{constructor}
 \\
- \ &| \{\ l_i\ =\ e_i \}                \tag{record}
+ \ &| \{\ l_i\ =\ e_i \}                    \tag{record}
 \\
- \ &|\ [\ e1_i\ =\ e2_i\ ]              \tag{map}
+ \ &|\ [\ e1_i\ =\ e2_i\ ]                  \tag{map}
 \\
- \ &|\ [[\ e1_i\ =\ e2_i\ ]]            \tag{big\ map}
+ \ &|\ [[\ e1_i\ =\ e2_i\ ]]                \tag{big\ map}
 \\
- \ &|\ [\ e_i\ ]                      \tag{list}
+ \ &|\ [\ e_i\ ]                          \tag{list}
 \\
- \ &| \{\ e_i \}                      \tag{set}
+ \ &| \{\ e_i \}                          \tag{set}
 \\
- \ &|\ e(.ai)                       \tag{accessor}
+ \ &|\ e(.ai)                           \tag{accessor}
 \\
- \ &|\ e1[e2]                       \tag{look\ up}
+ \ &|\ e1[e2]                           \tag{look\ up}
 \\
- \ &|\ match\ e\ with\ matching        \tag{matching}
+ \ &|\ match\ e\ with\ matching            \tag{matching}
 \\
- \ &|\ e1;\ e2                       \tag{sequence}
+ \ &|\ e1;\ e2                           \tag{sequence}
 \\
- \ &|\ while\ e1\ do\ e2               \tag{loop}
+ \ &|\ while\ e1\ do\ e2                   \tag{loop}
 \\
- \ &|\ x.(a_i)\ =\ e                  \tag{assign}
+ \ &|\ x.(a_i)\ =\ e                      \tag{assign}
 \\
- \ &|\ SKIP                         \tag{skip}
+ \ &|\ SKIP                             \tag{skip}
 \\
- \ &|\ e\ as\ T                       \tag{ascription}
+ \ &|\ e\ as\ T                           \tag{ascription}
 \end{align*}
 \begin{align*}
 access\ (a)\ = 
 \\
- \ &|\ int    \tag{for\ tuples}
+ \ &|\ int                              \tag{for\ tuples}
 \\
- \ &|\ string \tag{for\ record}
+ \ &|\ string                           \tag{for\ record}
 \\
- \ &|\ e      \tag{for\ map}
+ \ &|\ e                                \tag{for\ map}
 \end{align*}
 \begin{align*}
 value\ (v)\ = 
 \\
- \ &|\ literal                      \tag{values\ of\ built-in\ types}
+ \ &|\ literal                          \tag{values\ of\ built-in\ types}
 \\
- \ &|\ const\ v                      \tag{values\ of\ construct\ types}
+ \ &|\ const\ v                          \tag{values\ of\ construct\ types}
 \\
- \ &|\ \lambda x\ .\ expr                    \tag{lambda}
+ \ &|\ \lambda x\ .\ expr                        \tag{lambda}
 \end{align*}
 \begin{align*}
 literal\ =
 \\
- \ &|\ unit     \tag{}
+ \ &|\ unit                             \tag{}
 \\
- \ &|\ bool     \tag{}
+ \ &|\ bool                             \tag{}
 \\
- \ &|\ int     \tag{}
+ \ &|\ int                              \tag{}
 \\
- \ &|\ nat     \tag{}
+ \ &|\ nat                              \tag{}
 \\
- \ &|\ mutez     \tag{}
+ \ &|\ mutez                            \tag{}
 \\
- \ &|\ string     \tag{}
+ \ &|\ string                           \tag{}
 \\
- \ &|\ bytes     \tag{}
+ \ &|\ bytes                            \tag{}
 \\
- \ &|\ address     \tag{}
+ \ &|\ address                          \tag{}
 \\
- \ &|\ timestamp     \tag{}
+ \ &|\ timestamp                        \tag{}
 \\
- \ &|\ operation     \tag{}
+ \ &|\ operation                        \tag{}
 \end{align*}
 \begin{align*}
 matching\ (m)\ = 
