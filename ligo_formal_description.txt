@@ -1,16 +1,16 @@
 (** Syntax **)
 
-variables(x)
+variables (x)
 
 label (l)
 
 constructor (c)
 
-declaration(d) = 
+declaration (d) = 
   | type x is te                   (* Type declaration *)
   | const x (: te) = e             (* Const declaration *)
 
-type expression(te) =
+type expression (te) =
   | (* te_i)                       (* Type tuple *)
   | (| l_i of te_i)                (* Type sum *)
   | { l_i : te_i }                 (* Type record *)
@@ -18,7 +18,7 @@ type expression(te) =
   | l                              (* variable *)
   | l (te_i)                       (* type of built in function *)
 
-expression(e) = 
+expression (e) = 
   | value                          (* values *)
   | built_in                       (* built-in function *)
   | x                              (* variables *)
@@ -41,12 +41,12 @@ expression(e) =
   | SKIP                           (* skip *)
   | e as T                         (* ascription *)
 
-access(a) = 
+access (a) = 
   | int      (* for tuples *)
   | string   (* for record *)
   | e        (* for map *)
 
-value(v) = 
+value (v) = 
   | literal                        (* values of built-in types *)
   | const v                        (* values of construct types *)
   | λx . expr                      (* lambda *)
@@ -63,7 +63,7 @@ literal =
   | timestamp       (*  *)
   | operation       (*  *)
  
-matching(m) = 
+matching (m) = 
   | { true => e; false => e;}          (* match bool *)
   | { nil  => e; cons(hd::tl) => e;}   (* match list *)
   | { none => e; some(x)  => e;}       (* match option *)
@@ -81,8 +81,9 @@ matching value (mv) =
 (** Evaluation of expression **)
 
 (* base *)
-Values and variables are not evaluted
-built_in (e_i) -> built_in_result                            (* evaluated depending on each case *) (* E-BUILTIN *)
+Values are not evaluted
+x -> v (corresponding value in the environment)                                                     (* E-VARIABLE *)
+built in (e_i) -> built in result                            (* evaluated depending on each case *) (* E-BUILTIN *)
 (λx.e) v -> [ x -> v ] e                                                                            (* E-LAMBDA *)
 e1 -> e1' ==> e1 e2 -> e1' e2                                                                       (* E-APP1 *)
 e2 -> e2' ==> v1 e2 -> v1 e2'                                                                       (* E-APP2 *)
