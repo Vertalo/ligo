@@ -1,4 +1,7 @@
 (** Syntax **)
+The following describe the syntax of the simplify AST which is an internal of LIGO. The concrete syntax will be different depending of the choosen one but all the caterogies are present and the corresponding evaluation are the same
+
+A LIGO program is a succession of declarations and expressions. Declarations add bindings to the environment while expressions are evaluated and yield values
 
 variables (x)
 
@@ -8,15 +11,8 @@ constructor (c)
 
 declaration (d) = 
   | type x is te                       (* Type declaration *)
-  | const x (: te) = e                 (* Constant declaration *)
-
-type expression (te) =
-  | (* te_i)                           (* type of tuple *)
-  | (| l_i of te_i)                    (* type of sum *)
-  | { l_i : te_i }                     (* type of record *)
-  | te1 -> te2                         (* type of function *)
-  | l                                  (* type of variable *)
-  | l (te_i)                           (* type of built in function *)
+  | const x (: te)? = e                 (* Constant declaration *)
+  | var   x (: te)? = e                 (* Variable declaration *)
 
 expression (e) = 
   | value                              (* values *)
@@ -32,23 +28,26 @@ expression (e) =
   | [[ e1_i = e2_i ]]                  (* big map *)
   | [ e_i ]                            (* list *)
   | { e_i }                            (* set *)
-  | e(.ai)                             (* accessor *)
+  | e(.a_i)                            (* accessor *)
   | e1[e2]                             (* look up *)
   | match e with matching              (* matching *)
   | e1; e2                             (* sequence *)
   | while e1 do e2                     (* loop *)
-  | x.(a_i) = e                        (* assign *)
+  | x(.a_i) = e                        (* assign *)
   | SKIP                               (* skip *)
   | e as T                             (* ascription *)
 
-access (a) = 
-  | int                                (* for tuples *)
-  | string                             (* for record *)
-  | e                                  (* for map *)
+type expression (te) =
+  | te (* te_i)+                       (* type of tuple *)
+  | (| l_i of te_i)                    (* type of sum *)
+  | { l_i : te_i }                     (* type of record *)
+  | te1 -> te2                         (* type of function *)
+  | l                                  (* type of variable *)
+  | l (te_i)                           (* type of built in function *)
 
 value (v) = 
   | literal                            (* values of built-in types *)
-  | const v                            (* values of construct types *)
+  | c v                                (* values of construct types *)
   | λx . expr                          (* lambda *)
 
 literal =
@@ -63,6 +62,11 @@ literal =
   | timestamp                          (*  *)
   | operation                          (*  *)
  
+access (a) = 
+  | int                                (* for tuples *)
+  | string                             (* for record *)
+  | e                                  (* for map *)
+
 matching (m) = 
   | { true => e; false => e;}          (* match bool *)
   | { nil  => e; cons(hd::tl) => e;}   (* match list *)
@@ -77,11 +81,12 @@ matching value (mv) =
   | (x_i)  => v                        (* match tuple value *)
   | (const_i(x_i) => v_i )             (* match variant value *)
 
-
+\newpage
 (** Evaluation of expression **)
+The following describe how expression are evaluated to yield expressions 
 
 (* base *)
-Values are not evaluted
+%Values are not evaluted
 x -> v (corresponding value in the environment)                                                     (* E-VARIABLE *)
 built in (e_i) -> built in result                            (* evaluated depending on each case *) (* E-BUILTIN *)
 (λx.e) v -> [ x -> v ] e                                                                            (* E-LAMBDA *)
@@ -134,5 +139,6 @@ e_j -> e_j' ==> (c_i(x_i) => v_i, c_j(x_j) => e_j, c_k(x_k) => e_k) -> (c_i(x_i)
 
 
 (** Derive form **)
+The following describe equivalent notation. Meaning one could be drop for the AST without change the CSTs
 e1; e2 ====  (λx:Unit.e1) e2 with x not a free variable in e1 
 let x=e1 in e2 ==== (λx:T1.e2) e1 

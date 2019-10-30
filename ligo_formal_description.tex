@@ -14,6 +14,9 @@
 \begin{document}
 \maketitle
 \section*{ Syntax }
+The following describe the syntax of the simplify AST which is an internal of LIGO. The concrete syntax will be different depending of the choosen one but all the caterogies are present and the corresponding evaluation are the same
+
+A LIGO program is a succession of declarations and expressions. Declarations add bindings to the environment while expressions are evaluated and yield values
 
 \begin{align*}
 variables\ (x)
@@ -29,22 +32,9 @@ declaration\ (d)\ =
 \\
  \ &|\ type\ x\ is\ te                     \tag{Type\ declaration}
 \\
- \ &|\ const\ x\ (:\ te)\ =\ e               \tag{Constant\ declaration}
-\end{align*}
-\begin{align*}
-type\ expression\ (te)\ =
+ \ &|\ const\ x\ (:\ te)?\ =\ e               \tag{Constant\ declaration}
 \\
- \ &|\ (*\ te_i)                         \tag{type\ of\ tuple}
-\\
- \ &|\ (|\ l_i\ of\ te_i)                  \tag{type\ of\ sum}
-\\
- \ &| \{\ l_i\ :\ te_i \}                   \tag{type\ of\ record}
-\\
- \ &|\ te1\ \rightarrow \ te2                       \tag{type\ of\ function}
-\\
- \ &|\ l                                \tag{type\ of\ variable}
-\\
- \ &|\ l\ (te_i)                         \tag{type\ of\ built\ in\ function}
+ \ &|\ var  \ x\ (:\ te)?\ =\ e               \tag{Variable\ declaration}
 \end{align*}
 \begin{align*}
 expression\ (e)\ = 
@@ -75,7 +65,7 @@ expression\ (e)\ =
 \\
  \ &| \{\ e_i \}                          \tag{set}
 \\
- \ &|\ e(.ai)                           \tag{accessor}
+ \ &|\ e(.a_i)                          \tag{accessor}
 \\
  \ &|\ e1[e2]                           \tag{look\ up}
 \\
@@ -85,27 +75,33 @@ expression\ (e)\ =
 \\
  \ &|\ while\ e1\ do\ e2                   \tag{loop}
 \\
- \ &|\ x.(a_i)\ =\ e                      \tag{assign}
+ \ &|\ x(.a_i)\ =\ e                      \tag{assign}
 \\
  \ &|\ SKIP                             \tag{skip}
 \\
  \ &|\ e\ as\ T                           \tag{ascription}
 \end{align*}
 \begin{align*}
-access\ (a)\ = 
+type\ expression\ (te)\ =
 \\
- \ &|\ int                              \tag{for\ tuples}
+ \ &|\ te\ (*\ te_i)+                     \tag{type\ of\ tuple}
 \\
- \ &|\ string                           \tag{for\ record}
+ \ &|\ (|\ l_i\ of\ te_i)                  \tag{type\ of\ sum}
 \\
- \ &|\ e                                \tag{for\ map}
+ \ &| \{\ l_i\ :\ te_i \}                   \tag{type\ of\ record}
+\\
+ \ &|\ te1\ \rightarrow \ te2                       \tag{type\ of\ function}
+\\
+ \ &|\ l                                \tag{type\ of\ variable}
+\\
+ \ &|\ l\ (te_i)                         \tag{type\ of\ built\ in\ function}
 \end{align*}
 \begin{align*}
 value\ (v)\ = 
 \\
  \ &|\ literal                          \tag{values\ of\ built-in\ types}
 \\
- \ &|\ const\ v                          \tag{values\ of\ construct\ types}
+ \ &|\ c\ v                              \tag{values\ of\ construct\ types}
 \\
  \ &|\ \lambda x\ .\ expr                        \tag{lambda}
 \end{align*}
@@ -133,6 +129,15 @@ literal\ =
  \ &|\ operation                        \tag{}
 \end{align*}
 \begin{align*}
+access\ (a)\ = 
+\\
+ \ &|\ int                              \tag{for\ tuples}
+\\
+ \ &|\ string                           \tag{for\ record}
+\\
+ \ &|\ e                                \tag{for\ map}
+\end{align*}
+\begin{align*}
 matching\ (m)\ = 
 \\
  \ &| \{\ true\ =>\ e;\ false\ =>\ e;\}        \tag{match\ bool}
@@ -158,11 +163,12 @@ matching\ value\ (mv)\ =
 \\
  \ &|\ (const_i(x_i)\ =>\ v_i\ )           \tag{match\ variant\ value}
 \end{align*}
-
+\newpage
 \section*{ Evaluation of expression }
+The following describe how expression are evaluated to yield expressions 
 
 \subsection*{ base }
-Values are not evaluted
+%Values are not evaluted
 \begin{equation}x\ \rightarrow \ v\ (corresponding\ value\ in\ the\ environment)\ \tag{\ E-VARIABLE\ }\end{equation}
 \begin{equation}built\ in\ (e_i)\ \rightarrow \ built\ in\ result                           \ (*\ evaluated\ depending\ on\ each\ case\ *)\ \tag{\ E-BUILTIN\ }\end{equation}
 \begin{equation}(\lambda x.e)\ v\ \rightarrow \ [\ x\ \rightarrow \ v\ ]\ e\ \tag{\ E-LAMBDA\ }\end{equation}
@@ -215,6 +221,7 @@ Values are not evaluted
 
 
 \section*{ Derive form }
+The following describe equivalent notation. Meaning one could be drop for the AST without change the CSTs
 \begin{equation*}e1;\ e2\ \iff \ (\lambda x:Unit.e1)\ e2\ with\ x\ not\ a\ free\ variable\ in\ e1 \ \end{equation*}
 \begin{equation*}let\ x=e1\ in\ e2\ \iff\ (\lambda x:T1.e2)\ e1 \ \end{equation*}
 \end{document}
