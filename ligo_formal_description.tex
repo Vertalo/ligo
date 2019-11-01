@@ -19,204 +19,211 @@ The following describe the syntax of the simplify AST which is an internal of LI
 A LIGO program is a succession of declarations and expressions. Declarations add bindings to the environment while expressions are evaluated and yield values
 
 \begin{align*}
-variables\ (x)
+variables\ (x,X)
 \end{align*}
+Variable are the key to access elements in the environments. They are store with element they refers to at creation.
 \begin{align*}
 label\ (l)
 \end{align*}
+Label identifies filed in records 
 \begin{align*}
-constructor\ (c)
+constructor\ (C)
 \end{align*}
+Constructor creates custom type's literals for built-in types literals
 \begin{align*}
 declaration\ (d)\ = 
 \\
- \ &|\ type\ x\ is\ te                     \tag{Type\ declaration}
+ \ &|\ type \ X\ is\ te                    \ \tag{Type\ variable\ declaration}
 \\
- \ &|\ const\ x\ (:\ te)?\ =\ e               \tag{Constant\ declaration}
+ \ &|\ const\ x\ (:\ te)?\ =\ e              \ \tag{Term\ Constant\ variable\ declaration}
 \\
- \ &|\ var  \ x\ (:\ te)?\ =\ e               \tag{Variable\ declaration}
+ \ &|\ var  \ x\ (:\ te)?\ =\ e              \ \tag{Term\ Mutable\ variable\ declaration}
 \end{align*}
-\begin{align*}
-expression\ (e)\ = 
-\\
- \ &|\ value                            \tag{values}
-\\
- \ &|\ built_in                         \tag{built-in\ function}
-\\
- \ &|\ x                                \tag{variables}
-\\
- \ &|\ \lambda x\ .\ expr                        \tag{lambda}
-\\
- \ &|\ e1\ e2                            \tag{application}
-\\
- \ &|\ let\ x\ =\ e1\ in\ e2                 \tag{let\ in}
-\\
- \ &|\ (\ e_i\ )                          \tag{tuple}
-\\
- \ &|\ c\ e                              \tag{constructor}
-\\
- \ &| \{\ l_i\ =\ e_i \}                    \tag{record}
-\\
- \ &|\ [\ e1_i\ =\ e2_i\ ]                  \tag{map}
-\\
- \ &|\ [[\ e1_i\ =\ e2_i\ ]]                \tag{big\ map}
-\\
- \ &|\ [\ e_i\ ]                          \tag{list}
-\\
- \ &| \{\ e_i \}                          \tag{set}
-\\
- \ &|\ e(.a_i)                          \tag{accessor}
-\\
- \ &|\ e1[e2]                           \tag{look\ up}
-\\
- \ &|\ match\ e\ with\ matching            \tag{matching}
-\\
- \ &|\ e1;\ e2                           \tag{sequence}
-\\
- \ &|\ while\ e1\ do\ e2                   \tag{loop}
-\\
- \ &|\ x(.a_i)\ =\ e                      \tag{assign}
-\\
- \ &|\ SKIP                             \tag{skip}
-\\
- \ &|\ e\ as\ T                           \tag{ascription}
-\end{align*}
+declaration adds binding to the environment i.e. a pair of the variable and the expression it corresponds to
 \begin{align*}
 type\ expression\ (te)\ =
 \\
- \ &|\ te\ (*\ te_i)+                     \tag{type\ of\ tuple}
+ \ &|\ te\ (*\ te_i)+                    \ \tag{type\ of\ tuple}
 \\
- \ &|\ (|\ l_i\ of\ te_i)                  \tag{type\ of\ sum}
+ \ &|\ (|\ C_i\ of\ te_i)                 \ \tag{type\ of\ sum}
 \\
- \ &| \{\ l_i\ :\ te_i \}                   \tag{type\ of\ record}
+ \ &|\ \{\ l_i\ :\ te_i\ \}                  \ \tag{type\ of\ record}
 \\
- \ &|\ te1\ \rightarrow \ te2                       \tag{type\ of\ function}
+ \ &|\ te1\ \rightarrow \ te2                      \ \tag{type\ of\ function}
 \\
- \ &|\ l                                \tag{type\ of\ variable}
+ \ &|\ X                               \ \tag{type\ variable}
 \\
- \ &|\ l\ (te_i)                         \tag{type\ of\ built\ in\ function}
+ \ &|\ Operator\ (te_i)                 \ \tag{built\ in\ function\ on\ type}
 \end{align*}
+The above describres all expression that are valid at the level of types
+\newpage
+\begin{align*}
+term\ expression\ (e)\ = 
+\\
+ \ &|\ value                           \ \tag{values}
+\\
+ \ &|\ built-in\ (e_i)                  \ \tag{built-in\ function}
+\\
+ \ &|\ x                               \ \tag{variables}
+\\
+ \ &|\ \lambda x\ .\ expr                       \ \tag{lambda\ absctraction}
+\\
+ \ &|\ e_1\ e_2                         \ \tag{application}
+\\
+ \ &|\ let\ x\ =\ e_1\ in\ e_2              \ \tag{let\ in}
+\\
+ \ &|\ (\ e_i\ )                         \ \tag{tuple}
+\\
+ \ &|\ C\ e                             \ \tag{constructor}
+\\
+ \ &|\ \{\ l_i\ =\ e_i\ \}                   \ \tag{record}
+\\
+ \ &|\ [\ e1_i\ =\ e2_i\ ]                 \ \tag{map}
+\\
+ \ &|\ [[\ e1_i\ =\ e2_i\ ]]               \ \tag{big\ map}
+\\
+ \ &|\ [\ e_i\ ]                         \ \tag{list}
+\\
+ \ &|\ \{\ e_i\ \}                         \ \tag{set}
+\\
+ \ &|\ e(.a_i)                         \ \tag{accessor}
+\\
+ \ &|\ e1[e2]                          \ \tag{look\ up}
+\\
+ \ &|\ match\ e\ with\ matching           \ \tag{matching}
+\\
+ \ &|\ e1;\ e2                          \ \tag{sequence}
+\\
+ \ &|\ while\ e1\ do\ e2                  \ \tag{loop}
+\\
+ \ &|\ x(.a_i)\ =\ e                     \ \tag{assign}
+\\
+ \ &|\ SKIP                            \ \tag{skip}
+\\
+ \ &|\ e\ as\ T                          \ \tag{ascription}
+\end{align*}
+The above describes all expression that are valid at the level of terms
 \begin{align*}
 value\ (v)\ = 
 \\
- \ &|\ literal                          \tag{values\ of\ built-in\ types}
+ \ &|\ literal                         \ \tag{values\ of\ built-in\ types}
 \\
- \ &|\ c\ v                              \tag{values\ of\ construct\ types}
+ \ &|\ C\ v                             \ \tag{values\ of\ construct\ types}
 \\
- \ &|\ \lambda x\ .\ expr                        \tag{lambda}
+ \ &|\ \lambda x\ .\ expr                       \ \tag{lambda\ abstraction}
 \end{align*}
+Values are valid termination of expression, it can be a built-in or construct literal or an abstraction
 \begin{align*}
 literal\ =
 \\
- \ &|\ unit                             \tag{}
+ \ &|\ unit                            \ \tag{}
 \\
- \ &|\ bool                             \tag{}
+ \ &|\ bool                            \ \tag{}
 \\
- \ &|\ int                              \tag{}
+ \ &|\ int                             \ \tag{}
 \\
- \ &|\ nat                              \tag{}
+ \ &|\ nat                             \ \tag{}
 \\
- \ &|\ mutez                            \tag{}
+ \ &|\ mutez                           \ \tag{}
 \\
- \ &|\ string                           \tag{}
+ \ &|\ string                          \ \tag{}
 \\
- \ &|\ bytes                            \tag{}
+ \ &|\ bytes                           \ \tag{}
 \\
- \ &|\ address                          \tag{}
+ \ &|\ address                         \ \tag{}
 \\
- \ &|\ timestamp                        \tag{}
+ \ &|\ timestamp                       \ \tag{}
 \\
- \ &|\ operation                        \tag{}
+ \ &|\ operation                       \ \tag{}
 \end{align*}
+the above lists all predefined literals supported by ligos
 \begin{align*}
-access\ (a)\ = 
+accessor\ (a)\ = 
 \\
- \ &|\ int                              \tag{for\ tuples}
+ \ &|\ i\ (natural\ number)              \ \tag{for\ tuples}
 \\
- \ &|\ string                           \tag{for\ record}
+ \ &|\ l                               \ \tag{for\ record}
 \\
- \ &|\ e                                \tag{for\ map}
+ \ &|\ e                               \ \tag{for\ map}
 \end{align*}
+Accessor are use to access fields of data structure. If S is a structure, S.a if field a of S. 
 \begin{align*}
 matching\ (m)\ = 
 \\
- \ &| \{\ true\ =>\ e;\ false\ =>\ e;\}        \tag{match\ bool}
+ \ &|\ \{\ true\ =>\ e;\ false\ =>\ e;\}       \ \tag{match\ bool}
 \\
- \ &| \{\ nil \ =>\ e;\ cons(hd::tl)\ =>\ e;\} \tag{match\ list}
+ \ &|\ \{\ nil \ =>\ e;\ cons(hd::tl)\ =>\ e;\}\ \tag{match\ list}
 \\
- \ &| \{\ none\ =>\ e;\ some(x) \ =>\ e;\}     \tag{match\ option}
+ \ &|\ \{\ none\ =>\ e;\ some(x) \ =>\ e;\}    \ \tag{match\ option}
 \\
- \ &|\ (x_i) \ =>\ e                      \tag{match\ tuple}
+ \ &|\ (x_i) \ =>\ e                     \ \tag{match\ tuple}
 \\
- \ &|\ (const_i(x_i)\ =>\ e_i\ )           \tag{match\ variant}
+ \ &|\ (\{const_i(x_i)\ =>\ e_i;\}\ )       \ \tag{match\ variant}
 \end{align*}
-\begin{align*}
-matching\ value\ (mv)\ = 
-\\
- \ &| \{\ true\ =>\ v;\ false\ =>\ v;\}        \tag{match\ bool\ value}
-\\
- \ &| \{\ nil \ =>\ v;\ cons(hd::tl)\ =>\ v;\} \tag{match\ list\ value}
-\\
- \ &| \{\ none\ =>\ v;\ some(x) \ =>\ v;\}     \tag{match\ option\ value}
-\\
- \ &|\ (x_i) \ =>\ v                      \tag{match\ tuple\ value}
-\\
- \ &|\ (const_i(x_i)\ =>\ v_i\ )           \tag{match\ variant\ value}
-\end{align*}
-\newpage
+Matchings represent the different branch of the control flow that are taken depending on what the value 
+it is matched to i.e in "match a :bool with \{true => print 'toto'; false => print 'tata'\}" the program 
+will display 'toto' if a is true and 'tata' if a is false. notice that if clause are just a boolean matching.
+We will call matching values (mv), matchings were all expressions are values.
+
 \section*{ Evaluation of expression }
-The following describe how expression are evaluated to yield expressions 
+The following describes how expression are evaluated to yield expressions $A \rightarrow  A'$ reads as A evaluates to A', $\frac{P}{Q}$ reads as P implies Q
 
 \subsection*{ base }
 %Values are not evaluted
 \begin{equation}x\ \rightarrow \ v\ (corresponding\ value\ in\ the\ environment)\ \tag{\ E-VARIABLE\ }\end{equation}
 \begin{equation}built\ in\ (e_i)\ \rightarrow \ built\ in\ result                           \ (*\ evaluated\ depending\ on\ each\ case\ *)\ \tag{\ E-BUILTIN\ }\end{equation}
+\begin{equation}SKIP\ \rightarrow \ unit\ \tag{\ E-SKIP\ }\end{equation}
+\begin{equation}\frac{e\ \rightarrow \ e'}{C\ e\ \rightarrow \ C\ e'}\ \tag{\ E-CONST\ }\end{equation}
+Constructor are avaluated by evaluating the inner expression
 \begin{equation}(\lambda x.e)\ v\ \rightarrow \ [\ x\ \rightarrow \ v\ ]\ e\ \tag{\ E-LAMBDA\ }\end{equation}
+Lambda expression are evaluated by replacing the bound variable in the inner expression with the value it is applied to
 \begin{equation}\frac{e1\ \rightarrow \ e1'}{e1\ e2\ \rightarrow \ e1'\ e2}\ \tag{\ E-APP1\ }\end{equation}
 \begin{equation}\frac{e2\ \rightarrow \ e2'}{v1\ e2\ \rightarrow \ v1\ e2'}\ \tag{\ E-APP2\ }\end{equation}
+In application, expressions are evaluated from left to right
 \begin{equation}\frac{e1\ \rightarrow \ e1'}{let\ x=e1\ in\ e2\ \rightarrow \ let\ x=e1'\ in\ e2}\ \tag{\ E-LET\ }\end{equation}
-\begin{equation}let\ x=v1\ in\ e2\ \rightarrow \ [x\rightarrow v1]\ e2\ \tag{\ E-LETIN\ }\end{equation} 
+\begin{equation}let\ x=v1\ in\ e2\ \rightarrow \ [x\rightarrow v1]\ e2\ \tag{\ E-LETIN\ }\end{equation}
+In let in the first expression is evaluated to a value before using this value in place of the bound variable in the second expression 
 \begin{equation}\frac{e1\ \rightarrow \ e1'}{e1;\ e2\ \rightarrow \ e1';\ e2}\ \tag{\ E-SEQ\ }\end{equation}
 \begin{equation}unit;\ e2\ \rightarrow \ e2\ \tag{\ E-SEQNEXT\ }\end{equation}
+In sequence the left expression are evaluated first and shall yield a unit
 \begin{equation}\frac{e1\ \rightarrow \ e1'}{while\ e1\ then\ e2\ \rightarrow \ while\ e1'\ then\ e2}\ \tag{\ E-LOOP\ }\end{equation}
 \begin{equation}while\ true(=e1)\ then\ e2\ \rightarrow \ e2;\ while\ e1\ then\ e2\ \tag{\ E-LOOPTRUE\ }\end{equation}
 \begin{equation}while\ false\ then\ e2\ \rightarrow \ unit\ \tag{\ E-LOOPFALSE\ }\end{equation}
-\begin{equation}SKIP\ \rightarrow \ unit\ \tag{\ E-SKIP\ }\end{equation}
+In loop, the condition expression is evaluted first, if it is true, the loop yield a sequence of inner expression follow by a replication of the loop, otherwise the loop yield a unit
+\begin{equation}\frac{e\ \rightarrow \ e'}{x(.a_i)\ =\ e\ \rightarrow \ x(.a_i)\ =\ e'}\ \tag{\ E-ASSIGN\ }\end{equation}
+\begin{equation}x(.a_i)\ =\ v\ \rightarrow \ x'(.a_i)\ with\ x'\ as\ x\ with\ field\ (.a_i)\ replace\ by\ v\ \tag{\ E-ASSIGN2\ }\end{equation}
+In an assign expression, the expression to be assign is evaluated first and then the expression yield the data structure with the corresponding field replace buy the value yield by right expresion
 \begin{equation}\frac{e\ \rightarrow \ e'}{e\ as\ T\ \rightarrow \ e'\ as\ T}\ \tag{\ E-ASCR1\ }\end{equation}
 \begin{equation}v\ as\ T \ \rightarrow \ v\ \tag{\ E-ASCR2\ }\end{equation}  
+Ascription are dropped while being evaluated
 
 \subsection*{ data structure }
-\begin{equation}\frac{e\ \rightarrow \ e'}{c\ e\ \rightarrow \ c\ e'}\ \tag{\ E-CONST\ }\end{equation}
 \begin{equation}\frac{e_j\ \rightarrow \ e_j'}{(v_i,\ e_j,\ e_k)\ \rightarrow \ (v_i,\ e_j',\ e_k)}\ \tag{\ E-TUPLES\ }\end{equation}
 \begin{equation}\frac{e_j\ \rightarrow \ e_j'}{\{l_i=v_i,\ l_j=e_j,\ l_k=e_k\}\ \rightarrow \ \{l_i=v_i,\ l_j=e_j',\ l_k=e_k\}}\ \tag{\ E-RECORDS\ }\end{equation}
-\begin{equation}\frac{e2_j\ \rightarrow \ e2_j'}{[e1_i=v_i,\ e1_j=e2_j,\ e1_k=e2_k]\ \rightarrow \ [e1_i=v_i,\ e1_j=e2_j',\ e1_k=e2_k]}\ \tag{\ E-MAP\ }\end{equation}
-\begin{equation}\frac{e2_j\ \rightarrow \ e2_j'}{[[e1_i=v_i,\ e1_j=e2_j,\ e1_k=e2_k]]\ \rightarrow \ [[e1_i=v_i,\ e1_j=e2_j',\ e1_k=e2_k]]}\ \tag{\ E-BIGMAP\ }\end{equation}
+\begin{equation}\frac{e1_j\ \rightarrow \ e1_j'}{[v1_i=v_i,\ e1_j=e2_j,\ e1_k=e2_k]\ \rightarrow \ [v1_i=v_i,\ e1_j'=e2_j,\ e1_k=e2_k]}\ \tag{\ E-MAP\ }\end{equation}
+\begin{equation}\frac{e2_j\ \rightarrow \ e2_j'}{[v1_i=v_i,\ v1_j=e2_j,\ e1_k=e2_k]\ \rightarrow \ [v1_i=v_i,\ v1_j=e2_j',\ e1_k=e2_k]}\ \tag{\ E-MAP\ }\end{equation}
+\begin{equation}\frac{e1_j\ \rightarrow \ e1_j'}{[[v1_i=v_i,\ e1_j=e2_j,\ e1_k=e2_k]]\ \rightarrow \ [[v1_i=v_i,\ e1_j'=e2_j,\ e1_k=e2_k]]}\ \tag{\ E-BIGMAP\ }\end{equation}
+\begin{equation}\frac{e2_j\ \rightarrow \ e2_j'}{[[v1_i=v_i,\ v1_j=e2_j,\ e1_k=e2_k]]\ \rightarrow \ [[v1_i=v_i,\ v1_j=e2_j',\ e1_k=e2_k]]}\ \tag{\ E-BIGMAP\ }\end{equation}
 \begin{equation}\frac{e_j\ \rightarrow \ e_j'}{[v_i,\ e_j,\ e_k]\ \rightarrow \ [v_i,\ e_j',\ e_k]}\ \tag{\ E-LIST\ }\end{equation}
 \begin{equation}\frac{e_j\ \rightarrow \ e_j'}{\{v_i,\ e_j,\ e_k\}\ \rightarrow \ \{v_i,\ e_j',\ e_k\}}\ \tag{\ E-SET\ }\end{equation}
 \begin{equation}\frac{e\ \rightarrow \ e'}{e(.a_i)\ \rightarrow \ e'(.a_i)}\ \tag{\ E-ACCESS\ }\end{equation}
+These rules Means in a data structure, expression are fully evaluated from left to right until it reach a value.
 
 \subsection*{ look up }
 \begin{equation}(v_i)[j]     \ \rightarrow \ v_j\ \tag{\ E-LUPTUPLE\ }\end{equation} 
-\begin{equation}\{l_i=v_i\}[lj] \ \rightarrow \ v_j\ \tag{\ E-LUPRECORD\ }\end{equation}
-\begin{equation}[e_i=v_i][ej] \ \rightarrow \ v_j\ \tag{\ E-LUPMAP\ }\end{equation}
-\begin{equation}[[e_i=v_i]][ej] \ \rightarrow \ v_j\ \tag{\ E-LUPBIGMAP\ }\end{equation}
+\begin{equation}\{l_i=v_i\}[l_j] \ \rightarrow \ v_j\ \tag{\ E-LUPRECORD\ }\end{equation}
+\begin{equation}[v1_i=v2_i][v1_j] \ \rightarrow \ v2_j\ \tag{\ E-LUPMAP\ }\end{equation}
+\begin{equation}[[v2_i=v2_i]][v1_j] \ \rightarrow \ v2_j\ \tag{\ E-LUPBIGMAP\ }\end{equation}
 \begin{equation}[v_i][j]     \ \rightarrow \ v_j\ \tag{\ E-LUPLIST\ }\end{equation}
 \begin{equation}\{v_i\}[j]     \ \rightarrow \ v_j\ \tag{\ E-LUPSET\ }\end{equation}
-\begin{equation}\frac{e\ \rightarrow \ e'}{x(.a_i)\ =\ e\ \rightarrow \ x(.a_i)\ =\ e'}\ \tag{\ E-ASSIGN\ }\end{equation}
-\begin{equation}x(.a_i)\ =\ v\ \rightarrow \ x'(.a_i)\ with\ x'\ as\ x\ with\ field\ (.a_i)\ replace\ by\ v\ \tag{\ E-ASSIGN2\ }\end{equation}
+These rules indicated that when a loop up is evaluate to the element in the data-structure whose key/label/indice correspond to the argument of the lookup
+(no evaluation if there is no correspondence)
 
 \subsection*{ matching }
 \begin{equation}\frac{e\ \rightarrow \ e'}{match\ e\ with\ m\ \rightarrow \ match\ e'\ with\ m}\ \tag{\ E-MATCH1\ }\end{equation}
-\begin{equation}\frac{m\ \rightarrow \ m'}{match\ v\ with\ m\ \rightarrow \ match\ v \ with\ m'}\ \tag{\ E-MATCH2\ }\end{equation}
-\begin{equation}match\ v\ with\ mv\ \rightarrow \ v'\ if\ v\ =>\ v'\ in\ mv\ \tag{\ E-MATCH \ }\end{equation}
-\begin{equation}\frac{e1\ \rightarrow \ e1'}{\{\ true\ =>\ e1;\ false\ =>\ e2;\}\ \rightarrow \ \{\ true\ =>\ e1';\ false\ =>\ e2;\}}\ \tag{\ E-MAcTHBOOL1\ }\end{equation}
-\begin{equation}\frac{e2\ \rightarrow \ e2'}{\{\ true\ =>\ v1;\ false\ =>\ e2;\}\ \rightarrow \ \{\ true\ =>\ v1;\ false\ =>\ e2';\}}\ \tag{\ E-MAcTHBOOL2\ }\end{equation}
-\begin{equation}\frac{e1\ \rightarrow \ e1'}{\{\ nil \ =>\ e1;\ cons(hd::tl)\ =>\ e2;\}\ \rightarrow \ \{\ nil\ =>\ e1';\ cons(hd::tl)\ =>\ e2;\}}\ \tag{\ E-MATCHLIST1\ }\end{equation}
-\begin{equation}\frac{e2\ \rightarrow \ e2'}{\{\ nil \ =>\ v1;\ cons(hd::tl)\ =>\ e2;\}\ \rightarrow \ \{\ nil\ =>\ v1;\ cons(hd::tl)\ =>\ e2';\}}\ \tag{\ E-MATCHLIST2\ }\end{equation}
-\begin{equation}\frac{e1\ \rightarrow \ e1'}{\{\ none\ =>\ e1;\ some(x) \ =>\ e2;\}\ \rightarrow \ \{\ none\ =>\ e1';\ some(x)\ =>\ e2;\ \}}\ \tag{\ E-MATCHOPT1\ }\end{equation}
-\begin{equation}\frac{e2\ \rightarrow \ e2'}{\{\ none\ =>\ v1;\ some(x) \ =>\ e2;\}\ \rightarrow \ \{\ none\ =>\ v1';\ some(x)\ =>\ e2';\ \}}\ \tag{\ E-MATCHOPT2\ }\end{equation}
-\begin{equation}\frac{e\ \rightarrow \ e'}{(x_i) \ =>\ e\ \rightarrow \ (x_i)\ =>\ e'}\ \tag{\ E-MATCHTUPLE\ }\end{equation}            
-\begin{equation}\frac{e_j\ \rightarrow \ e_j'}{(c_i(x_i)\ =>\ v_i,\ c_j(x_j)\ =>\ e_j,\ c_k(x_k)\ =>\ e_k)\ \rightarrow \ (c_i(x_i)\ =>\ v_i,\ c_j(x_j)=>e_j',\ c_k(x_k)=>e_k)}\ \tag{\ E-MATCHVARIANT\ }\end{equation}    
+\begin{equation}match\ v\ with\ m\ \rightarrow \ e\ with\ v\ =>\ e\ in\ m\ \tag{\ E-MATCH2\ }\end{equation}
+To sum up, in matching expression, the element to be match is first evaluated, then
+the expression is evaluated by look in the matching value, the element to be match against and extracting the expression given. 
 
 
 

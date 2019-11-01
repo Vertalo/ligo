@@ -21,7 +21,7 @@ echo "\maketitle" >> $output
 
 
 sed \
-    -e '/[a-z ]*\(([a-z])\|=\|([a-z]\{1,2\}) =\)[ ]*$/{
+    -e '/[a-z ]*\(([a-zA-Z]\(,[a-zA-Z]\)\{0,1\})\|=\|([a-zA-Z]\{1,2\}) =\)[ ]*$/{
         i\\\begin{align*}
         s/ \([^ ]\)/\\\ \1/g
         b skip
@@ -45,9 +45,10 @@ sed \
     -e "s/(\*\*\(.*\)\*\*)/\\\section\*{\1}/g" \
     -e "s/^(\*\(.*\)\*)/\\\subsection\*{\1}/g" \
     -e "/^\\\begin/ s/ \([^ ]\)/\\\ \1/g" \
-    -e "/^  \&/ s/ \([^ \]\)/\\\ \1/g" \
+    -e "/^  \&/ s/ \([^ ]\)/\\\ \1/g" \
     -e "s/λ/\\\lambda /g" \
     -e "s/->/\\\rightarrow /g" \
+    -e "s/\([a-zA-Z]*\) ==> \([a-zA-Z]*\)/\\\frac{\1}{\2}/g" \
     >> $output
 
 echo "\end{document}" >> $output
