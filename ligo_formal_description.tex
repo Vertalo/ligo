@@ -25,7 +25,7 @@ Variable are the key to access elements in the environments. They are store with
 \begin{align*}
 label\ (l)
 \end{align*}
-Label identifies filed in records 
+Label identifies field in records, label always start with a letter
 \begin{align*}
 constructor\ (C)
 \end{align*}
@@ -74,21 +74,21 @@ term\ expression\ (e)\ =
 \\
  \ &|\ (\ e_i\ )                         \ \tag{tuple}
 \\
- \ &|\ C\ e                             \ \tag{constructor}
-\\
  \ &|\ \{\ l_i\ =\ e_i\ \}                   \ \tag{record}
+\\
+ \ &|\ e(.a_i)                         \ \tag{accessor}
 \\
  \ &|\ [\ e1_i\ =\ e2_i\ ]                 \ \tag{map}
 \\
  \ &|\ [[\ e1_i\ =\ e2_i\ ]]               \ \tag{big\ map}
 \\
- \ &|\ [\ e_i\ ]                         \ \tag{list}
+ \ &|\ e1[e2]                          \ \tag{look\ up}
 \\
  \ &|\ \{\ e_i\ \}                         \ \tag{set}
 \\
- \ &|\ e(.a_i)                         \ \tag{accessor}
+ \ &|\ [\ e_i\ ]                         \ \tag{list}
 \\
- \ &|\ e1[e2]                          \ \tag{look\ up}
+ \ &|\ C\ e                             \ \tag{constructor}
 \\
  \ &|\ match\ e\ with\ matching           \ \tag{matching}
 \\
@@ -110,7 +110,19 @@ value\ (v)\ =
 \\
  \ &|\ C\ v                             \ \tag{values\ of\ construct\ types}
 \\
- \ &|\ \lambda x\ .\ expr                       \ \tag{lambda\ abstraction}
+ \ &|\ \lambda x\ .\ expr                       \ \tag{lambda\ abstraction\ values}
+\\
+ \ &|\ (\ v_i\ )                         \ \tag{tuple\ values}
+\\
+ \ &|\ \{\ l_i\ =\ v_i\ \}                   \ \tag{record\ values}
+\\
+ \ &|\ [\ v1_i\ =\ v2_i\ ]                 \ \tag{map\ values}
+\\
+ \ &|\ [[\ v1_i\ =\ v2_i\ ]]               \ \tag{big\ map\ values}
+\\
+ \ &|\ \{\ v_i\ \}                         \ \tag{set\ values}
+\\
+ \ &|\ [\ v_i\ ]                         \ \tag{list\ values}
 \end{align*}
 Values are valid termination of expression, it can be a built-in or construct literal or an abstraction
 \begin{align*}
@@ -143,8 +155,6 @@ accessor\ (a)\ =
  \ &|\ i\ (natural\ number)              \ \tag{for\ tuples}
 \\
  \ &|\ l                               \ \tag{for\ record}
-\\
- \ &|\ e                               \ \tag{for\ map}
 \end{align*}
 Accessor are use to access fields of data structure. If S is a structure, S.a if field a of S. 
 \begin{align*}
@@ -163,7 +173,6 @@ matching\ (m)\ =
 Matchings represent the different branch of the control flow that are taken depending on what the value 
 it is matched to i.e in "match a :bool with \{true => print 'toto'; false => print 'tata'\}" the program 
 will display 'toto' if a is true and 'tata' if a is false. notice that if clause are just a boolean matching.
-We will call matching values (mv), matchings were all expressions are values.
 
 \section*{ Evaluation of expression }
 The following describes how expression are evaluated to yield expressions $A \rightarrow  A'$ reads as A evaluates to A', $\frac{P}{Q}$ reads as P implies Q
@@ -173,9 +182,7 @@ The following describes how expression are evaluated to yield expressions $A \ri
 \begin{equation}x\ \rightarrow \ v\ (corresponding\ value\ in\ the\ environment)\ \tag{\ E-VARIABLE\ }\end{equation}
 \begin{equation}built\ in\ (e_i)\ \rightarrow \ built\ in\ result                           \ (*\ evaluated\ depending\ on\ each\ case\ *)\ \tag{\ E-BUILTIN\ }\end{equation}
 \begin{equation}SKIP\ \rightarrow \ unit\ \tag{\ E-SKIP\ }\end{equation}
-\begin{equation}\frac{e\ \rightarrow \ e'}{C\ e\ \rightarrow \ C\ e'}\ \tag{\ E-CONST\ }\end{equation}
-Constructor are avaluated by evaluating the inner expression
-\begin{equation}(\lambda x.e)\ v\ \rightarrow \ [\ x\ \rightarrow \ v\ ]\ e\ \tag{\ E-LAMBDA\ }\end{equation}
+\begin{equation}(\lambda x.e)\ v\ \rightarrow \ [\ x\ \mapsto \ v\ ]\ e\ \tag{\ E-LAMBDA\ }\end{equation}
 Lambda expression are evaluated by replacing the bound variable in the inner expression with the value it is applied to
 \begin{equation}\frac{e1\ \rightarrow \ e1'}{e1\ e2\ \rightarrow \ e1'\ e2}\ \tag{\ E-APP1\ }\end{equation}
 \begin{equation}\frac{e2\ \rightarrow \ e2'}{v1\ e2\ \rightarrow \ v1\ e2'}\ \tag{\ E-APP2\ }\end{equation}
@@ -186,12 +193,10 @@ In let in the first expression is evaluated to a value before using this value i
 \begin{equation}\frac{e1\ \rightarrow \ e1'}{e1;\ e2\ \rightarrow \ e1';\ e2}\ \tag{\ E-SEQ\ }\end{equation}
 \begin{equation}unit;\ e2\ \rightarrow \ e2\ \tag{\ E-SEQNEXT\ }\end{equation}
 In sequence the left expression are evaluated first and shall yield a unit
-\begin{equation}\frac{e1\ \rightarrow \ e1'}{while\ e1\ then\ e2\ \rightarrow \ while\ e1'\ then\ e2}\ \tag{\ E-LOOP\ }\end{equation}
-\begin{equation}while\ true(=e1)\ then\ e2\ \rightarrow \ e2;\ while\ e1\ then\ e2\ \tag{\ E-LOOPTRUE\ }\end{equation}
-\begin{equation}while\ false\ then\ e2\ \rightarrow \ unit\ \tag{\ E-LOOPFALSE\ }\end{equation}
-In loop, the condition expression is evaluted first, if it is true, the loop yield a sequence of inner expression follow by a replication of the loop, otherwise the loop yield a unit
-\begin{equation}\frac{e\ \rightarrow \ e'}{x(.a_i)\ =\ e\ \rightarrow \ x(.a_i)\ =\ e'}\ \tag{\ E-ASSIGN\ }\end{equation}
-\begin{equation}x(.a_i)\ =\ v\ \rightarrow \ x'(.a_i)\ with\ x'\ as\ x\ with\ field\ (.a_i)\ replace\ by\ v\ \tag{\ E-ASSIGN2\ }\end{equation}
+\begin{equation}\frac{while\ e1\ then\ e2}{match\ e1\ with\ \{\ true\ =>\ `e2;\ while\ e1\ then\ e2`\ ;\ false\ =>\ skip\}}\ \tag{\ E-LOOP\ }\end{equation}
+In loop, the condition expression is evaluted first, if it is true, the loop yield a sequence with the inner expression follow by a replication of the loop, otherwise the loop yield a unit
+\begin{equation}\frac{e\ \rightarrow \ e'}{x(.a_i)\ =\ e\ \rightarrow \ x(.a_i)\ =\ e'}\ \tag{\ E-ASSIGN1\ }\end{equation}
+\begin{equation}x(.a_i)\ =\ v\ \rightarrow \ x'\ with\ x'\ as\ x\ with\ field\ (.a_i)\ replace\ by\ v\ \tag{\ E-ASSIGN2\ }\end{equation}
 In an assign expression, the expression to be assign is evaluated first and then the expression yield the data structure with the corresponding field replace buy the value yield by right expresion
 \begin{equation}\frac{e\ \rightarrow \ e'}{e\ as\ T\ \rightarrow \ e'\ as\ T}\ \tag{\ E-ASCR1\ }\end{equation}
 \begin{equation}v\ as\ T \ \rightarrow \ v\ \tag{\ E-ASCR2\ }\end{equation}  
@@ -200,35 +205,33 @@ Ascription are dropped while being evaluated
 \subsection*{ data structure }
 \begin{equation}\frac{e_j\ \rightarrow \ e_j'}{(v_i,\ e_j,\ e_k)\ \rightarrow \ (v_i,\ e_j',\ e_k)}\ \tag{\ E-TUPLES\ }\end{equation}
 \begin{equation}\frac{e_j\ \rightarrow \ e_j'}{\{l_i=v_i,\ l_j=e_j,\ l_k=e_k\}\ \rightarrow \ \{l_i=v_i,\ l_j=e_j',\ l_k=e_k\}}\ \tag{\ E-RECORDS\ }\end{equation}
-\begin{equation}\frac{e1_j\ \rightarrow \ e1_j'}{[v1_i=v_i,\ e1_j=e2_j,\ e1_k=e2_k]\ \rightarrow \ [v1_i=v_i,\ e1_j'=e2_j,\ e1_k=e2_k]}\ \tag{\ E-MAP\ }\end{equation}
-\begin{equation}\frac{e2_j\ \rightarrow \ e2_j'}{[v1_i=v_i,\ v1_j=e2_j,\ e1_k=e2_k]\ \rightarrow \ [v1_i=v_i,\ v1_j=e2_j',\ e1_k=e2_k]}\ \tag{\ E-MAP\ }\end{equation}
-\begin{equation}\frac{e1_j\ \rightarrow \ e1_j'}{[[v1_i=v_i,\ e1_j=e2_j,\ e1_k=e2_k]]\ \rightarrow \ [[v1_i=v_i,\ e1_j'=e2_j,\ e1_k=e2_k]]}\ \tag{\ E-BIGMAP\ }\end{equation}
-\begin{equation}\frac{e2_j\ \rightarrow \ e2_j'}{[[v1_i=v_i,\ v1_j=e2_j,\ e1_k=e2_k]]\ \rightarrow \ [[v1_i=v_i,\ v1_j=e2_j',\ e1_k=e2_k]]}\ \tag{\ E-BIGMAP\ }\end{equation}
+\begin{equation}\frac{e\ \rightarrow \ e'}{e(.a_i)\ \rightarrow \ e'(.a_i)}\ \tag{\ E-ACCESS\ }\end{equation}
+\begin{equation}\frac{e1_j\ \rightarrow \ e1_j'}{[v1_i=v_i,\ e1_j=e2_j,\ e1_k=e2_k]\ \rightarrow \ [v1_i=v_i,\ e1_j'=e2_j,\ e1_k=e2_k]}\ \tag{\ E-MAP1\ }\end{equation}
+\begin{equation}\frac{e2_j\ \rightarrow \ e2_j'}{[v1_i=v_i,\ v1_j=e2_j,\ e1_k=e2_k]\ \rightarrow \ [v1_i=v_i,\ v1_j=e2_j',\ e1_k=e2_k]}\ \tag{\ E-MAP2\ }\end{equation}
+\begin{equation}\frac{e1_j\ \rightarrow \ e1_j'}{[[v1_i=v_i,\ e1_j=e2_j,\ e1_k=e2_k]]\ \rightarrow \ [[v1_i=v_i,\ e1_j'=e2_j,\ e1_k=e2_k]]}\ \tag{\ E-BIGMAP1\ }\end{equation}
+\begin{equation}\frac{e2_j\ \rightarrow \ e2_j'}{[[v1_i=v_i,\ v1_j=e2_j,\ e1_k=e2_k]]\ \rightarrow \ [[v1_i=v_i,\ v1_j=e2_j',\ e1_k=e2_k]]}\ \tag{\ E-BIGMAP2\ }\end{equation}
 \begin{equation}\frac{e_j\ \rightarrow \ e_j'}{[v_i,\ e_j,\ e_k]\ \rightarrow \ [v_i,\ e_j',\ e_k]}\ \tag{\ E-LIST\ }\end{equation}
 \begin{equation}\frac{e_j\ \rightarrow \ e_j'}{\{v_i,\ e_j,\ e_k\}\ \rightarrow \ \{v_i,\ e_j',\ e_k\}}\ \tag{\ E-SET\ }\end{equation}
-\begin{equation}\frac{e\ \rightarrow \ e'}{e(.a_i)\ \rightarrow \ e'(.a_i)}\ \tag{\ E-ACCESS\ }\end{equation}
 These rules Means in a data structure, expression are fully evaluated from left to right until it reach a value.
 
 \subsection*{ look up }
-\begin{equation}(v_i)[j]     \ \rightarrow \ v_j\ \tag{\ E-LUPTUPLE\ }\end{equation} 
-\begin{equation}\{l_i=v_i\}[l_j] \ \rightarrow \ v_j\ \tag{\ E-LUPRECORD\ }\end{equation}
 \begin{equation}[v1_i=v2_i][v1_j] \ \rightarrow \ v2_j\ \tag{\ E-LUPMAP\ }\end{equation}
 \begin{equation}[[v2_i=v2_i]][v1_j] \ \rightarrow \ v2_j\ \tag{\ E-LUPBIGMAP\ }\end{equation}
-\begin{equation}[v_i][j]     \ \rightarrow \ v_j\ \tag{\ E-LUPLIST\ }\end{equation}
-\begin{equation}\{v_i\}[j]     \ \rightarrow \ v_j\ \tag{\ E-LUPSET\ }\end{equation}
 These rules indicated that when a loop up is evaluate to the element in the data-structure whose key/label/indice correspond to the argument of the lookup
 (no evaluation if there is no correspondence)
 
 \subsection*{ matching }
+\begin{equation}\frac{e\ \rightarrow \ e'}{C\ e\ \rightarrow \ C\ e'}\ \tag{\ E-CONST\ }\end{equation}
+Constructor are avaluated by evaluating the inner expression
 \begin{equation}\frac{e\ \rightarrow \ e'}{match\ e\ with\ m\ \rightarrow \ match\ e'\ with\ m}\ \tag{\ E-MATCH1\ }\end{equation}
-\begin{equation}match\ v\ with\ m\ \rightarrow \ e\ with\ v\ =>\ e\ in\ m\ \tag{\ E-MATCH2\ }\end{equation}
+\begin{equation}match\ v_i\ with\ m\ \rightarrow \ e_i\ (if\ \{v_i\ =>\ e_i\}\ in\ m)\ \tag{\ E-MATCH2\ }\end{equation}
 To sum up, in matching expression, the element to be match is first evaluated, then
-the expression is evaluated by look in the matching value, the element to be match against and extracting the expression given. 
+the expression is evaluated by looking in the matching value, the element to be match against and extracting the expression given. 
 
 
 
 \section*{ Derive form }
-The following describe equivalent notation. Meaning one could be drop for the AST without change the CSTs
-\begin{equation*}e1;\ e2\ \iff \ (\lambda x:Unit.e1)\ e2\ with\ x\ not\ a\ free\ variable\ in\ e1 \ \end{equation*}
+The following describe equivalent notation. The AST could define only the right expression and the CST define the left one as syntactic sugar
+\begin{equation*}e1;\ e2\ \iff \ (\lambda x:Unit.e2)\ e1\ with\ x\ not\ a\ free\ variable\ in\ e1 \ \end{equation*}
 \begin{equation*}let\ x=e1\ in\ e2\ \iff\ (\lambda x:T1.e2)\ e1 \ \end{equation*}
 \end{document}

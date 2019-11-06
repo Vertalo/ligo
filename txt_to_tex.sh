@@ -47,6 +47,7 @@ sed \
     -e "/^\\\begin/ s/ \([^ ]\)/\\\ \1/g" \
     -e "/^  \&/ s/ \([^ ]\)/\\\ \1/g" \
     -e "s/λ/\\\lambda /g" \
+    -e "s/-->/\\\mapsto /g" \
     -e "s/->/\\\rightarrow /g" \
     -e "s/\([a-zA-Z]*\) ==> \([a-zA-Z]*\)/\\\frac{\1}{\2}/g" \
     >> $output
