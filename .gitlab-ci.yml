@@ -70,16 +70,14 @@ test:
       - coverage
 
 xrefcheck:
-  extends: .nix
+  stage: build
+  image:
+    name: serokell/xrefcheck
+    entrypoint: [""]
   only:
     - merge_requests
   script:
-    # Should be replaced with
-    # nix run github:serokell/xrefcheck
-    # Once flakes roll out to stable
-    # - nix run -f https://github.com/serokell/xrefcheck/archive/v0.1.1.2.tar.gz -c 'xrefcheck local-only'
-    - curl -L https://github.com/serokell/xrefcheck/releases/download/v0.1.1/release.tar.gz | tar -zxf - xrefcheck/bin/xrefcheck
-    - xrefcheck/bin/xrefcheck
+    - /bin/xrefcheck
 
 # Strange race conditions, disable for now
 .webide-e2e:
