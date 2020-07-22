@@ -4,6 +4,7 @@
   (libraries
     simple-utils
     tezos-utils
+    proto-alpha-utils
     ast_typed
     ligo_interpreter
   )

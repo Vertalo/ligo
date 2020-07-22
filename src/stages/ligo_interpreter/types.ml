@@ -1,6 +1,5 @@
 include Ast_typed.Types
 
-(*types*)
 module Env = Map.Make(
   struct
     type t = expression_variable
@@ -11,15 +10,17 @@ module Env = Map.Make(
 (*TODO temporary hack to handle failwiths *)
 exception Temporary_hack of string
 
+module Tez = Proto_alpha_utils.Memory_proto_alpha.Protocol.Alpha_context.Tez
+
 type env = value Env.t
 
 and constant_val =
   | C_unit
   | C_bool of bool
-  | C_int of Z.t
-  | C_nat of Z.t
+  | C_int of Int_repr_copied.z Int_repr_copied.num
+  | C_nat of Int_repr_copied.n Int_repr_copied.num
   | C_timestamp of Z.t
-  | C_mutez of Z.t
+  | C_mutez of Tez.t
   | C_string of string
   | C_bytes of bytes
   | C_address of string

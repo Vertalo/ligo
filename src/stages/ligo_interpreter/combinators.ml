@@ -25,7 +25,7 @@ let extract_pair : value -> (value * value , _) result =
         ok (fst,snd)
       | _ -> failwith "value is not a pair" )
 
-let is_true : value -> (bool , _) result =
+let is_true : value -> bool =
   fun b -> match b with
-    | V_Ct (C_bool b) -> ok b
-    | _ -> failwith "value is not a bool"
+    | V_Ct (C_bool true) -> true
+    | _ -> false

@@ -330,13 +330,14 @@ let interpret =
   (Term.ret term , Term.info ~doc cmdname)
 
 let temp_ligo_interpreter =
-  let f source_file syntax display_format brief=
+  let f source_file syntax amount balance sender source now display_format brief=
     return_result ~display_format ~brief (Ligo_interpreter.Formatter.program_format) @@
+      let%bind options    = Run.make_dry_run_options {now ; amount ; balance ; sender ; source } in
       let%bind typed,_    = Compile.Utils.type_file source_file syntax Env in
-      Compile.Of_typed.some_interpret typed
+      Compile.Of_typed.some_interpret ~options typed
   in
   let term =
-    Term.(const f $ source_file 0 $ syntax $ display_format $brief) in
+    Term.(const f $ source_file 0 $ syntax $ amount $ balance $ sender $ source $ now $ display_format $ brief) in
   let cmdname = "ligo-interpret" in
   let doc = "Subcommand: (temporary / dev only) uses LIGO interpret." in
   (Term.ret term , Term.info ~doc cmdname)

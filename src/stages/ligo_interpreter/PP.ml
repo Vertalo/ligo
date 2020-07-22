@@ -8,7 +8,7 @@ let rec pp_value : value -> string = function
   | V_Ct (C_bool true) -> Format.asprintf "true"
   | V_Ct (C_bool false) -> Format.asprintf "false"
   | V_Ct (C_bytes b) -> Format.asprintf "0x%a : bytes" Hex.pp (Hex.of_bytes b)
-  | V_Ct (C_mutez i) -> Format.asprintf "%a : mutez" Z.pp_print i 
+  | V_Ct (C_mutez i) -> Format.asprintf "%Ld : mutez" (Tez.to_mutez i)
   | V_Ct (C_address s) -> Format.asprintf "\"%s\" : address" s
   | V_Ct _ -> Format.asprintf "PP, TODO"
   | V_Failure s -> Format.asprintf "\"%s\" : failure " s
