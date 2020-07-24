@@ -244,3 +244,7 @@ let rec sum_rec ((n,acc):int * int) : int =
     if (n < 1) then acc else sum_rec (n-1, acc+n)
 
 let top_level_recursion = sum_rec (10,0)
+
+let timestamp_op = Tezos.now >= Tezos.now
+
+let amt_bal = (Tezos.amount , Tezos.balance)

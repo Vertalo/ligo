@@ -301,6 +301,14 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
         (V_Ct C_unit) elts
     | ( C_SET_MEM    , [ v ; V_Set (elts) ] ) -> return @@ v_bool (List.mem v elts)
     | ( C_SET_REMOVE , [ v ; V_Set (elts) ] ) -> return @@ V_Set (List.filter (fun el -> not (el = v)) elts)
+    | ( C_NOW , [] ) -> call Now >>=* fun now -> return_ct @@ C_timestamp now
+    | ( C_AMOUNT , [] ) -> call Amount >>=* fun v -> return_ct @@ C_mutez v
+    | ( C_BALANCE , [] ) -> call Balance >>=* fun v -> return_ct @@ C_mutez v
+(*
+TODO ?
+C_SENDER
+C_SOURCE
+*)
     | _ ->
       let () = Format.printf "%a\n" Ast_typed.PP.constant c in
       let () = List.iter ( fun e -> Format.printf "%s\n" (Ligo_interpreter.PP.pp_value e)) operands in
@@ -317,17 +325,12 @@ hash on key
 C_HASH_KEY
 
 need exts
-C_AMOUNT
-C_BALANCE
 C_CHAIN_ID
 C_CONTRACT_ENTRYPOINT_OPT
 C_CONTRACT_OPT
 C_CONTRACT
 C_CONTRACT_ENTRYPOINT
 C_SELF_ADDRESS
-C_SOURCE
-C_SENDER
-C_NOW
 C_IMPLICIT_ACCOUNT
 
 C_CALL
@@ -474,9 +477,6 @@ and eval_ligo : Ast_typed.expression -> env -> value Monad.t
       return @@ V_Func_rec (fun_name, lambda.binder, lambda.result, env)
     | E_raw_code _ -> failwith "Can't evaluate a raw code insertion"
 
-type options = Proto_alpha_utils.Memory_proto_alpha.options
-let default_options () = Proto_alpha_utils.Memory_proto_alpha.default_options
-
 let eval : ?options:options -> Ast_typed.program -> (string , _) result =
   fun ?(options = default_options ()) prg ->
   let aux  (pp,top_env) el =
@@ -485,9 +485,9 @@ let eval : ?options:options -> Ast_typed.program -> (string , _) result =
        let%bind (v,_ctxt) =
          (*TODO This TRY-CATCH is here until we properly implement effects*)
          try
-           Monad.eval (eval_ligo expr top_env) options.tezos_context None
+           Monad.eval (eval_ligo expr top_env) options None
          with Temporary_hack s ->
-           ok (V_Failure s, options.tezos_context)
+           ok (V_Failure s, options)
               (*TODO This TRY-CATCH is here until we properly implement effects*)
        in
     let pp' = pp^"\n val "^(Var.to_name binder.wrap_content)^" = "^(Ligo_interpreter.PP.pp_value v) in

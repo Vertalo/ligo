@@ -5,7 +5,7 @@ open Trace
 module LT = Ligo_interpreter.Types
 module Int_repr = Ligo_interpreter.Int_repr_copied
 
-type context = Alpha_context.context
+type context = LT.options
 type execution_trace = unit
 type 'a result_monad = ('a,Errors.interpreter_error) result
 
@@ -16,6 +16,9 @@ module Command = struct
     | Fail_reject : Location.t * LT.value -> 'a t
     | Fresh_internal_nonce : int t
     | Parse_contract_for_script : Alpha_context.Contract.t * string -> unit t
+    | Now : Z.t t
+    | Amount : LT.Tez.t t
+    | Balance : LT.Tez.t t
     | Serialize_pack_data : 'a -> 'a t
     | Serialize_unpack_data : 'a -> 'a t
     | Tez_compare_wrapped : LT.Tez.t * LT.Tez.t -> int t
@@ -66,10 +69,13 @@ module Command = struct
     | Fail_reject (location, e) ->
       fail (`Ligo_interpret_reject (location,e))
     | Fresh_internal_nonce ->
-      let%bind (ctxt, nonce) =
+      let%bind (tezos_context, nonce) =
         Proto_alpha_utils.Trace.trace_alpha_tzresult (fun _ -> `TODO) @@
-        Alpha_context.fresh_internal_nonce ctxt in
-      ok (nonce, ctxt)
+        Alpha_context.fresh_internal_nonce ctxt.tezos_context in
+      ok (nonce, { ctxt with tezos_context })
+    | Now -> ok (LT.Timestamp.to_zint ctxt.now, ctxt)
+    | Amount -> ok (ctxt.amount, ctxt)
+    | Balance -> ok (ctxt.balance, ctxt)
     | Serialize_pack_data v -> ok (v,ctxt)
     | Serialize_unpack_data v -> ok (v,ctxt)
     | Parse_contract_for_script _ -> Trace.fail `TODO
@@ -139,6 +145,7 @@ end *)
 let (>>=*) (x : 'a t) (f : 'a -> 'b t) : 'b t = Bind (x, f)
 let return (x: 'a) : 'a t = Return x
 let call (command : 'a Command.t) : 'a t = Call command
+let ( let>> ) o f = Bind (call o, f)
 let bind_err (x: 'a result_monad) : 'a t = Bind_err x
 
 let rec bind_list = function

@@ -10,7 +10,8 @@ let rec pp_value : value -> string = function
   | V_Ct (C_bytes b) -> Format.asprintf "0x%a : bytes" Hex.pp (Hex.of_bytes b)
   | V_Ct (C_mutez i) -> Format.asprintf "%Ld : mutez" (Tez.to_mutez i)
   | V_Ct (C_address s) -> Format.asprintf "\"%s\" : address" s
-  | V_Ct _ -> Format.asprintf "PP, TODO"
+  | V_Ct (C_timestamp t) -> Format.asprintf "+%a" Z.pp_print t
+  | V_Ct (_) -> Format.asprintf "TODO"
   | V_Failure s -> Format.asprintf "\"%s\" : failure " s
   | V_Record recmap ->
     let content = LMap.fold (fun label field prev ->

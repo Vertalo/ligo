@@ -1,5 +1,8 @@
 include Ast_typed.Types
 
+type options = Proto_alpha_utils.Memory_proto_alpha.options
+let default_options () = Proto_alpha_utils.Memory_proto_alpha.default_options
+
 module Env = Map.Make(
   struct
     type t = expression_variable
@@ -11,6 +14,7 @@ module Env = Map.Make(
 exception Temporary_hack of string
 
 module Tez = Proto_alpha_utils.Memory_proto_alpha.Protocol.Alpha_context.Tez
+module Timestamp = Memory_proto_alpha.Protocol.Alpha_context.Script_timestamp
 
 type env = value Env.t
 

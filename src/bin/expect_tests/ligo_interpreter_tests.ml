@@ -4,7 +4,7 @@ let contract basename =
   "../../test/contracts/" ^ basename
 
 let%expect_test _ =
-  run_ligo_good [ "ligo-interpret" ; contract "interpret_test.mligo" ] ;
+  run_ligo_good [ "ligo-interpret" ; contract "interpret_test.mligo" ; "--amount=12" ; "--balance=13" ] ;
   [%expect {|
     val lambda_call = 16 : int
     val higher_order1 = 5 : int
@@ -56,4 +56,6 @@ let%expect_test _ =
     val set_mem = {  ; 0 = (true) ; 1 = (false) ; 2 = (false) }
     val recursion_let_rec_in = 55 : int
     val sum_rec = <rec fun>
-    val top_level_recursion = 55 : int |}] ;
+    val top_level_recursion = 55 : int
+    val timestamp_op = true
+    val amt_bal = {  ; 0 = (12000000 : mutez) ; 1 = (13000000 : mutez) } |}] ;
