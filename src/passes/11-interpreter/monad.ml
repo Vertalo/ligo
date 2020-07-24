@@ -142,16 +142,21 @@ let rec eval
   module Open_on_rhs_bind = struct end
 end *)
 
-let (>>=*) (x : 'a t) (f : 'a -> 'b t) : 'b t = Bind (x, f)
 let return (x: 'a) : 'a t = Return x
 let call (command : 'a Command.t) : 'a t = Call command
 let ( let>> ) o f = Bind (call o, f)
+let ( let* ) o f = Bind (o, f)
 let bind_err (x: 'a result_monad) : 'a t = Bind_err x
 
 let rec bind_list = function
   | [] -> return []
-  | hd::tl -> hd >>=* fun hd -> bind_list tl >>=* fun tl -> return @@ hd :: tl
+  | hd::tl ->
+    let* hd = hd in
+    let* tl = bind_list tl in
+    return @@ hd :: tl
+
 let bind_map_list f lst = bind_list (List.map f lst)
+
 let bind_fold_list f init lst =
-  let aux x y = x >>=* fun x -> f x y
+  let aux x y = let* x = x in f x y
   in List.fold_left aux (return init) lst

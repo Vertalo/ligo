@@ -13,39 +13,37 @@ let apply_comparison : Ast_typed.constant' -> value list -> value Monad.t =
     | ( comp , [ V_Ct (C_int a'      ) ; V_Ct (C_int b'      ) ] )
     | ( comp , [ V_Ct (C_timestamp a') ; V_Ct (C_timestamp b') ] )
     | ( comp , [ V_Ct (C_nat a'      ) ; V_Ct (C_nat b'      ) ] ) ->
-      call (Int_compare_wrapped (a', b')) >>=* fun i ->
-      call (Int_of_int i) >>=* fun cmpres ->
-      call (Int_compare (cmpres, Ligo_interpreter.Int_repr_copied.zero)) >>=* fun cmpres -> (
-        let x = match comp with
-          (*TODO those Int.(XX) ... should be added as a command in the monad and replaced by 
-            int_repr_copied.Compare.(XX)*)
-          | C_EQ -> (cmpres = 0)
-          | C_NEQ -> (cmpres <> 0)
-          | C_LT -> (cmpres < 0)
-          | C_LE -> (cmpres <= 0)
-          | C_GT -> (cmpres > 0)
-          | C_GE -> (cmpres >= 0)
-          | _ -> failwith "apply compare must be called with a comparative constant"
-        in
-        Monad.return @@ v_bool x
-      )
+      let>> i = Int_compare_wrapped (a', b') in
+      let>> cmpres = Int_of_int i in
+      let>> cmpres = Int_compare (cmpres, Ligo_interpreter.Int_repr_copied.zero) in
+      let x = match comp with
+        (*TODO those Int.(XX) ... should be added as a command in the monad and replaced by 
+          int_repr_copied.Compare.(XX)*)
+        | C_EQ -> (cmpres = 0)
+        | C_NEQ -> (cmpres <> 0)
+        | C_LT -> (cmpres < 0)
+        | C_LE -> (cmpres <= 0)
+        | C_GT -> (cmpres > 0)
+        | C_GE -> (cmpres >= 0)
+        | _ -> failwith "apply compare must be called with a comparative constant"
+      in
+      return @@ v_bool x
     | ( comp , [ V_Ct (C_mutez a'    ) ; V_Ct (C_mutez b'    ) ] ) ->
-      call (Tez_compare_wrapped (a', b')) >>=* fun i ->
-      call (Int_of_int i) >>=* fun cmpres ->
-      call (Int_compare (cmpres, Ligo_interpreter.Int_repr_copied.zero)) >>=* fun cmpres -> (
-        let x = match comp with
-          (*TODO those Int.(XX) ... should be added as a command in the monad and replaced by 
-            int_repr_copied.Compare.(XX)*)
-          | C_EQ -> (cmpres = 0)
-          | C_NEQ -> (cmpres <> 0)
-          | C_LT -> (cmpres < 0)
-          | C_LE -> (cmpres <= 0)
-          | C_GT -> (cmpres > 0)
-          | C_GE -> (cmpres >= 0)
-          | _ -> failwith "apply compare must be called with a comparative constant"
-        in
-        Monad.return @@ v_bool x
-      )
+      let>> i = Tez_compare_wrapped (a', b') in
+      let>> cmpres = Int_of_int i in
+      let>> cmpres = Int_compare (cmpres, Ligo_interpreter.Int_repr_copied.zero) in
+      let x = match comp with
+        (*TODO those Int.(XX) ... should be added as a command in the monad and replaced by 
+          int_repr_copied.Compare.(XX)*)
+        | C_EQ -> (cmpres = 0)
+        | C_NEQ -> (cmpres <> 0)
+        | C_LT -> (cmpres < 0)
+        | C_LE -> (cmpres <= 0)
+        | C_GT -> (cmpres > 0)
+        | C_GE -> (cmpres >= 0)
+        | _ -> failwith "apply compare must be called with a comparative constant"
+      in
+      return @@ v_bool x
     | ( comp     , [ V_Ct (C_string a'  ) ; V_Ct (C_string b'  ) ] )
     | ( comp     , [ V_Ct (C_address a' ) ; V_Ct (C_address b' ) ] )
     | ( comp     , [ V_Ct (C_key_hash a') ; V_Ct (C_key_hash b') ] ) ->
@@ -80,12 +78,10 @@ let apply_comparison : Ast_typed.constant' -> value list -> value Monad.t =
 (* applying those operators does not involve extending the environment *)
 let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
   fun c operands ->
-  let (>>=*) = Monad.(>>=*) in
-  let call = Monad.call in
-  let return = Monad.return in
-  let return_ct v = Monad.return @@ V_Ct v in
-  let return_none () = Monad.return @@ v_none () in
-  let return_some v  = Monad.return @@ v_some v in
+  let open Monad in
+  let return_ct v = return @@ V_Ct v in
+  let return_none () = return @@ v_none () in
+  let return_some v  = return @@ v_some v in
   ( match (c,operands) with
     (* nullary *)
     | ( C_NONE , [] ) -> return_none ()
@@ -128,49 +124,58 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_CONS   , [ v                  ; V_List vl          ] ) -> return @@ V_List (v::vl)
     | ( C_ADD    , [ V_Ct (C_int a'  )  ; V_Ct (C_int b'  )  ] )
     | ( C_ADD    , [ V_Ct (C_nat a'  )  ; V_Ct (C_int b'  )  ] )
-    | ( C_ADD    , [ V_Ct (C_int a'  )  ; V_Ct (C_nat b'  )  ] ) -> call (Int_add (a',b')) >>=* fun r -> return_ct (C_int r)
-    | ( C_ADD    , [ V_Ct (C_nat a'  )  ; V_Ct (C_nat b'  )  ] ) -> call (Int_add_n (a',b')) >>=* fun r -> return_ct (C_nat r)
+    | ( C_ADD    , [ V_Ct (C_int a'  )  ; V_Ct (C_nat b'  )  ] ) -> let>> r = Int_add (a',b') in return_ct (C_int r)
+    | ( C_ADD    , [ V_Ct (C_nat a'  )  ; V_Ct (C_nat b'  )  ] ) -> let>> r = Int_add_n (a',b') in return_ct (C_nat r)
     | ( C_MUL    , [ V_Ct (C_int a'  )  ; V_Ct (C_int b'  )  ] )
     | ( C_MUL    , [ V_Ct (C_nat a'  )  ; V_Ct (C_int b'  )  ] )
-    | ( C_MUL    , [ V_Ct (C_int a'  )  ; V_Ct (C_nat b'  )  ] ) -> call (Int_mul (a',b')) >>=* fun r -> return_ct (C_int r)
-    | ( C_MUL    , [ V_Ct (C_nat a'  )  ; V_Ct (C_nat b'  )  ] ) -> call (Int_mul_n (a',b')) >>=* fun r -> return_ct (C_nat r)
+    | ( C_MUL    , [ V_Ct (C_int a'  )  ; V_Ct (C_nat b'  )  ] ) -> let>> r = Int_mul (a',b') in return_ct (C_int r)
+    | ( C_MUL    , [ V_Ct (C_nat a'  )  ; V_Ct (C_nat b'  )  ] ) -> let>> r = Int_mul_n (a',b') in return_ct (C_nat r)
     | ( C_MUL    , [ V_Ct (C_nat a'  )  ; V_Ct (C_mutez b')  ] ) ->
-      call (Int_to_int64 a') >>=* fun a' -> (
-          match a' with
-          | None -> call (Fail_overflow Location.generated (*TODO*))
-          | Some a' ->
-            let res = Tez.(b' *? a') in
-            call (Lift_tz_result res) >>=* fun res -> return_ct (C_mutez res)
-      )
+      let>> a' = Int_to_int64 a' in
+      begin
+        match a' with
+        | None -> call (Fail_overflow Location.generated (*TODO*))
+        | Some a' ->
+          let res = Tez.(b' *? a') in
+          let>> res = Lift_tz_result res in
+          return_ct (C_mutez res)
+      end
     | ( C_MUL    , [ V_Ct (C_mutez a')  ; V_Ct (C_nat b')  ] ) ->
-      call (Int_to_int64 b') >>=* fun b' -> (
-          match b' with
-          | None -> call (Fail_overflow Location.generated (*TODO*))
-          | Some b' ->
-            let res = Tez.(a' *? b') in
-            call (Lift_tz_result res) >>=* fun res -> return_ct (C_mutez res)
-      )
+      let>> b' = Int_to_int64 b' in
+      begin
+        match b' with
+        | None -> 
+          let>> res = Fail_overflow Location.generated (*TODO*) in
+          res
+        | Some b' ->
+          let res = Tez.(a' *? b') in
+          let>> res = Lift_tz_result res in
+          return_ct (C_mutez res)
+      end
     | ( C_DIV    , [ V_Ct (C_int a'  )  ; V_Ct (C_int b'  )  ] )
     | ( C_DIV    , [ V_Ct (C_int a'  )  ; V_Ct (C_nat b'  )  ] )
     | ( C_DIV    , [ V_Ct (C_nat a'  )  ; V_Ct (C_int b'  )  ] ) -> 
-      call (Int_ediv (a',b')) >>=* ( fun a ->
+      let>> a = Int_ediv (a',b') in
+      begin
         match a with
         | Some (res,_) -> return_ct @@ C_int res
         | None -> failwith "TODO div/0 ?"
-      )
+      end
     | ( C_DIV    , [ V_Ct (C_nat a')  ; V_Ct (C_nat b')  ] ) ->
-      call (Int_ediv_n (a',b')) >>=* ( fun a ->
+      let>> a = Int_ediv_n (a',b') in
+      begin
         match a with
         | Some (res,_) -> return_ct @@ C_nat res
         | None -> failwith "TODO div/0 ?"
-      )
+      end
     | ( C_DIV    , [ V_Ct (C_mutez a')  ; V_Ct (C_nat b'  )  ] ) ->
-      call (Int_of_int64 (Tez.to_mutez a')) >>=* fun a' ->
-      call (Int_ediv (a', b')) >>=* fun res -> (
+      let>> a' = Int_of_int64 (Tez.to_mutez a') in
+      let>> res = Int_ediv (a', b') in
+      begin
         match res with
         | None -> failwith "TODO div/0 ?"
         | Some (q, _r) ->
-            call (Int_to_int64 q) >>=* fun q' ->
+            let>> q' = Int_to_int64 q in
               match q' with
               | Some q ->
                   begin
@@ -181,31 +186,37 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
                   end
               (* Cannot overflow *)
               | _ -> failwith "TODO div/0 ?"
-      )
+      end
     | ( C_DIV    , [ V_Ct (C_mutez a')  ; V_Ct (C_mutez b')  ] ) ->
-      call (Int_of_int64 (Tez.to_mutez a')) >>=* fun a' ->
-      call (Int_abs a') >>=* fun a' ->
-      call (Int_of_int64 (Tez.to_mutez b')) >>=* fun b' ->
-      call (Int_abs b') >>=* fun b' ->
-      call (Int_ediv_n (a', b')) >>=* fun div -> (
+      let abs : Tez.t -> _ Monad.t = fun x ->
+        let>> x' = Int_of_int64 (Tez.to_mutez x) in
+        let>> x' = Int_abs x' in
+        return x'
+      in
+      let* a' = abs a' in
+      let* b' = abs b' in
+      let>> div = Int_ediv_n (a', b') in
+      begin
         match div with
             | None -> failwith "TODO div/0"
             | Some (q, _r) -> return_ct @@ (C_nat q)
-      )
+      end
     | ( C_MOD    , [ V_Ct (C_int a')    ; V_Ct (C_int b')    ] )
     | ( C_MOD    , [ V_Ct (C_int a')    ; V_Ct (C_nat b')    ] )
     | ( C_MOD    , [ V_Ct (C_nat a')    ; V_Ct (C_int b')    ] ) ->
-      call (Int_ediv (a',b')) >>=* ( fun a ->
+      let>> a = Int_ediv (a',b') in
+      begin
         match a with
         | Some (_,r) -> return_ct @@ C_nat r
         | None -> failwith "TODO div/0 ?"
-      )
+      end
     | ( C_MOD    , [ V_Ct (C_nat a')    ; V_Ct (C_nat b')    ] ) ->
-      call (Int_ediv_n (a',b')) >>=* ( fun a ->
+      let>> a = Int_ediv_n (a',b') in
+      begin
         match a with
         | Some (_,r) -> return_ct @@ C_nat r
         | None -> failwith "TODO div/0 ?"
-      )
+      end
     | ( C_CONCAT , [ V_Ct (C_string a') ; V_Ct (C_string b') ] ) -> return_ct @@ C_string (a' ^ b')
     | ( C_CONCAT , [ V_Ct (C_bytes a' ) ; V_Ct (C_bytes b' ) ] ) -> return_ct @@ C_bytes  (Bytes.cat a' b')
     | ( C_OR     , [ V_Ct (C_bool a'  ) ; V_Ct (C_bool b'  ) ] ) -> return_ct @@ C_bool   (a' || b')
@@ -213,23 +224,25 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_XOR    , [ V_Ct (C_bool a'  ) ; V_Ct (C_bool b'  ) ] ) -> return_ct @@ C_bool   ( (a' || b') && (not (a' && b')) ) 
     | ( C_LIST_EMPTY, []) -> return @@ V_List ([])
     | ( C_LIST_MAP , [ V_Func_val (arg_name, body, env) ; V_List (elts) ] ) ->
+      let* elts =
         Monad.bind_map_list
           (fun elt ->
             let env' = Env.extend env (arg_name,elt) in
             eval_ligo body env')
           elts
-        >>=* fun elts ->
-          return (V_List elts)
+      in
+      return (V_List elts)
     | ( C_MAP_MAP , [ V_Func_val (arg_name, body, env) ; V_Map (elts) ] ) ->
+      let* elts =
         Monad.bind_map_list
           (fun (k,v) ->
             let env' = Env.extend env (arg_name,v_pair (k,v)) in
-            eval_ligo body env' >>=* fun v' ->
+            let* v' = eval_ligo body env' in
             return @@ (k,v')
           )
           elts
-      >>=* fun elts ->
-        return (V_Map elts)
+      in
+      return (V_Map elts)
     | ( C_LIST_ITER , [ V_Func_val (arg_name, body, env) ; V_List (elts) ] ) ->
       Monad.bind_fold_list
         (fun _ elt ->
@@ -246,9 +259,9 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
         (V_Ct C_unit) elts
     | ( C_FOLD_WHILE , [ V_Func_val (arg_name, body, env) ; init ] ) ->
       let rec aux el =
-        Monad.bind_err @@ extract_pair el >>=* fun (b,folded_val) ->
+        let* (b,folded_val) = Monad.bind_err @@ extract_pair el in
         let env' = Env.extend env (arg_name, folded_val) in
-        eval_ligo body env' >>=* fun res ->
+        let* res = eval_ligo body env' in
         if is_true b then aux res else return folded_val in
       aux @@ v_pair (v_bool true,init)
     (* tertiary *)
@@ -301,9 +314,9 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
         (V_Ct C_unit) elts
     | ( C_SET_MEM    , [ v ; V_Set (elts) ] ) -> return @@ v_bool (List.mem v elts)
     | ( C_SET_REMOVE , [ v ; V_Set (elts) ] ) -> return @@ V_Set (List.filter (fun el -> not (el = v)) elts)
-    | ( C_NOW , [] ) -> call Now >>=* fun now -> return_ct @@ C_timestamp now
-    | ( C_AMOUNT , [] ) -> call Amount >>=* fun v -> return_ct @@ C_mutez v
-    | ( C_BALANCE , [] ) -> call Balance >>=* fun v -> return_ct @@ C_mutez v
+    | ( C_NOW , [] ) -> let>> now = Now in return_ct @@ C_timestamp now
+    | ( C_AMOUNT , [] ) -> let>> amt = Amount in return_ct @@ C_mutez amt
+    | ( C_BALANCE , [] ) -> let>> blc = Balance in return_ct @@ C_mutez blc
 (*
 TODO ?
 C_SENDER
@@ -360,12 +373,13 @@ and eval_literal : Ast_typed.literal -> value Monad.t = function
       | None -> failwith "TODO - v is negative ?"
       | Some r -> r in
    Monad.(
-      call (Int_to_int64 t) >>=* fun t -> (
+      let>> t = Int_to_int64 t in
+      begin
         match t with
           | Some t ->
             Monad.return @@ V_Ct (C_mutez (cast_to_mutez t))
           | None -> call (Fail_overflow Location.generated) (*TODO*)
-      )
+      end
   )
   | Literal_address s   -> Monad.return @@ V_Ct (C_address s)
   | Literal_signature s -> Monad.return @@ V_Ct (C_signature s)
@@ -379,8 +393,8 @@ and eval_ligo : Ast_typed.expression -> env -> value Monad.t
     let open Monad in
     match term.expression_content with
     | E_application ({lamb = f; args}) -> (
-        (eval_ligo f env) >>=* fun f' ->
-        (eval_ligo args env) >>=* fun args' ->
+        let* f' = eval_ligo f env in
+        let* args' = eval_ligo args env in
         match f' with
           | V_Func_val (arg_names, body, f_env) ->
             let f_env' = Env.extend f_env (arg_names, args') in
@@ -394,7 +408,7 @@ and eval_ligo : Ast_typed.expression -> env -> value Monad.t
     | E_lambda {binder; result;} ->
       return @@ V_Func_val (binder,result,env)
     | E_let_in {let_binder ; rhs; let_result} -> (
-      eval_ligo rhs env >>=* fun rhs' ->
+      let* rhs' = eval_ligo rhs env in
       eval_ligo (let_result) (Env.extend env (let_binder,rhs'))
     )
     | E_literal l ->
@@ -402,14 +416,15 @@ and eval_ligo : Ast_typed.expression -> env -> value Monad.t
     | E_variable var ->
       bind_err (Env.lookup env var)
     | E_record recmap ->
-      Monad.bind_map_list
+      let* lv' = Monad.bind_map_list
         (fun (label,(v:Ast_typed.expression)) ->
-          eval_ligo v env >>=* fun v' ->
+          let* v' = eval_ligo v env in
           return (label,v'))
-        (LMap.to_kv_list recmap) >>=* fun lv' ->
+        (LMap.to_kv_list recmap)
+      in
       return @@ V_Record (LMap.of_list lv')
     | E_record_accessor { record ; path} -> (
-      eval_ligo record env >>=* fun record' ->
+      let* record' = eval_ligo record env in
       match record' with
       | V_Record recmap ->
         let a = LMap.find path recmap in
@@ -417,29 +432,29 @@ and eval_ligo : Ast_typed.expression -> env -> value Monad.t
       | _ -> failwith "trying to access a non-record"
     )
     | E_record_update {record ; path ; update} -> (
-      eval_ligo record env >>=* fun record' ->
+      let* record' = eval_ligo record env in
       match record' with
       | V_Record recmap ->
         if LMap.mem path recmap then
-          eval_ligo update env >>=* fun field' ->
+          let* field' = eval_ligo update env in
           return @@ V_Record (LMap.add path field' recmap)
         else
           failwith "field l does not exist in record"
       | _ -> failwith "this expression isn't a record"
     )
     | E_constant {cons_name ; arguments} -> (
-      Monad.bind_map_list
+      let* arguments' = Monad.bind_map_list
         (fun (ae:Ast_typed.expression) -> eval_ligo ae env)
-        arguments >>=* fun operands' ->
-      apply_operator cons_name operands'
+        arguments in
+      apply_operator cons_name arguments'
     )
     | E_constructor { constructor = Label c ; element } when (String.equal c "true" || String.equal c "false")
      && element.expression_content = Ast_typed.e_unit () -> return @@ V_Ct (C_bool (bool_of_string c))
     | E_constructor { constructor = Label c ; element } ->
-      eval_ligo element env >>=* fun v' ->
+      let* v' = eval_ligo element env in
       return @@ V_Construct (c,v')
     | E_matching { matchee ; cases} -> (
-      eval_ligo matchee env >>=* fun e' ->
+      let* e' = eval_ligo matchee env in
       match cases, e' with
       | Match_list cases , V_List [] ->
         eval_ligo cases.match_nil env
@@ -490,12 +505,11 @@ let eval : ?options:options -> Ast_typed.program -> (string , _) result =
            ok (V_Failure s, options)
               (*TODO This TRY-CATCH is here until we properly implement effects*)
        in
-    let pp' = pp^"\n val "^(Var.to_name binder.wrap_content)^" = "^(Ligo_interpreter.PP.pp_value v) in
-    let top_env' = Env.extend top_env (binder, v) in
-    ok @@ (pp',top_env')
+      let pp' = pp^"\n val "^(Var.to_name binder.wrap_content)^" = "^(Ligo_interpreter.PP.pp_value v) in
+      let top_env' = Env.extend top_env (binder, v) in
+      ok @@ (pp',top_env')
     | Ast_typed.Declaration_type _ ->
-       ok (pp , top_env)
+      ok (pp , top_env)
   in
-  let%bind (res,_) = bind_fold_list aux
-      ("",Env.empty_env) prg in
-    ok @@ res
+  let%bind (res,_) = bind_fold_list aux ("",Env.empty_env) prg in
+  ok @@ res
