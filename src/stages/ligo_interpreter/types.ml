@@ -18,6 +18,12 @@ module Timestamp = Memory_proto_alpha.Protocol.Alpha_context.Script_timestamp
 
 type env = value Env.t
 
+and func_val = {
+  arg_binder : expression_variable ;
+  body : Ast_typed.expression ;
+  env : env ;
+}
+
 and constant_val =
   | C_unit
   | C_bool of bool
@@ -35,7 +41,7 @@ and constant_val =
   | C_operation of Memory_proto_alpha.Protocol.Alpha_context.packed_internal_operation
 
 and value =
-  | V_Func_val of (expression_variable * Ast_typed.expression * env)
+  | V_Func_val of func_val
   | V_Func_rec of (expression_variable * expression_variable * Ast_typed.expression * env)
   | V_Ct of constant_val
   | V_List of value list

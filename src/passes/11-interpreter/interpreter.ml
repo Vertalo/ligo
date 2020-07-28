@@ -222,44 +222,44 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_AND    , [ V_Ct (C_bool a'  ) ; V_Ct (C_bool b'  ) ] ) -> return_ct @@ C_bool   (a' && b')
     | ( C_XOR    , [ V_Ct (C_bool a'  ) ; V_Ct (C_bool b'  ) ] ) -> return_ct @@ C_bool   ( (a' || b') && (not (a' && b')) ) 
     | ( C_LIST_EMPTY, []) -> return @@ V_List ([])
-    | ( C_LIST_MAP , [ V_Func_val (arg_name, body, env) ; V_List (elts) ] ) ->
+    | ( C_LIST_MAP , [ V_Func_val {arg_binder ; body ; env}  ; V_List (elts) ] ) ->
       let* elts =
         Monad.bind_map_list
           (fun elt ->
-            let env' = Env.extend env (arg_name,elt) in
+            let env' = Env.extend env (arg_binder,elt) in
             eval_ligo body env')
           elts
       in
       return (V_List elts)
-    | ( C_MAP_MAP , [ V_Func_val (arg_name, body, env) ; V_Map (elts) ] ) ->
+    | ( C_MAP_MAP , [ V_Func_val {arg_binder ; body ; env}  ; V_Map (elts) ] ) ->
       let* elts =
         Monad.bind_map_list
           (fun (k,v) ->
-            let env' = Env.extend env (arg_name,v_pair (k,v)) in
+            let env' = Env.extend env (arg_binder,v_pair (k,v)) in
             let* v' = eval_ligo body env' in
             return @@ (k,v')
           )
           elts
       in
       return (V_Map elts)
-    | ( C_LIST_ITER , [ V_Func_val (arg_name, body, env) ; V_List (elts) ] ) ->
+    | ( C_LIST_ITER , [ V_Func_val {arg_binder ; body ; env}  ; V_List (elts) ] ) ->
       Monad.bind_fold_list
         (fun _ elt ->
-          let env' = Env.extend env (arg_name,elt) in
+          let env' = Env.extend env (arg_binder,elt) in
           eval_ligo body env'
         )
         (V_Ct C_unit) elts
-    | ( C_MAP_ITER , [ V_Func_val (arg_name, body, env) ; V_Map (elts) ] ) ->
+    | ( C_MAP_ITER , [ V_Func_val {arg_binder ; body ; env}  ; V_Map (elts) ] ) ->
       Monad.bind_fold_list
         (fun _ kv ->
-          let env' = Env.extend env (arg_name,v_pair kv) in
+          let env' = Env.extend env (arg_binder,v_pair kv) in
           eval_ligo body env'
         )
         (V_Ct C_unit) elts
-    | ( C_FOLD_WHILE , [ V_Func_val (arg_name, body, env) ; init ] ) ->
+    | ( C_FOLD_WHILE , [ V_Func_val {arg_binder ; body ; env}  ; init ] ) ->
       let rec aux el =
         let* (b,folded_val) = Monad.bind_err @@ extract_pair el in
-        let env' = Env.extend env (arg_name, folded_val) in
+        let env' = Env.extend env (arg_binder, folded_val) in
         let* res = eval_ligo body env' in
         if is_true b then aux res else return folded_val in
       aux @@ v_pair (v_bool true,init)
@@ -267,20 +267,20 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_SLICE , [ V_Ct (C_nat st) ; V_Ct (C_nat ed) ; V_Ct (C_string s) ] ) ->
       (*TODO : allign with tezos*)
       return @@ V_Ct (C_string (String.sub s (Z.to_int st) (Z.to_int ed)))
-    | ( C_LIST_FOLD , [ V_Func_val (arg_name, body, env) ; V_List elts ; init ] ) ->
+    | ( C_LIST_FOLD , [ V_Func_val {arg_binder ; body ; env}  ; V_List elts ; init ] ) ->
       Monad.bind_fold_list
         (fun prev elt ->
           let fold_args = v_pair (prev,elt) in
-          let env' = Env.extend env (arg_name,  fold_args) in
+          let env' = Env.extend env (arg_binder,  fold_args) in
           eval_ligo body env'
         )
         init elts
     | ( C_MAP_EMPTY , []) -> return @@ V_Map ([])
-    | ( C_MAP_FOLD , [ V_Func_val (arg_name, body, env) ; V_Map kvs ; init ] ) ->
+    | ( C_MAP_FOLD , [ V_Func_val {arg_binder ; body ; env}  ; V_Map kvs ; init ] ) ->
       Monad.bind_fold_list
         (fun prev kv ->
           let fold_args = v_pair (prev, v_pair kv) in
-          let env' = Env.extend env (arg_name,  fold_args) in
+          let env' = Env.extend env (arg_binder,  fold_args) in
           eval_ligo body env'
         )
         init kvs
@@ -296,18 +296,18 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     )
     | ( C_SET_EMPTY, []) -> return @@ V_Set ([])
     | ( C_SET_ADD , [ v ; V_Set l ] ) -> return @@ V_Set (List.sort_uniq compare (v::l))
-    | ( C_SET_FOLD , [ V_Func_val (arg_name, body, env) ; V_Set elts ; init ] ) ->
+    | ( C_SET_FOLD , [ V_Func_val {arg_binder ; body ; env}  ; V_Set elts ; init ] ) ->
       Monad.bind_fold_list
         (fun prev elt ->
           let fold_args = v_pair (prev,elt) in
-          let env' = Env.extend env (arg_name, fold_args) in
+          let env' = Env.extend env (arg_binder, fold_args) in
           eval_ligo body env'
         )
         init elts
-    | ( C_SET_ITER , [ V_Func_val (arg_name, body, env) ; V_Set (elts) ] ) ->
+    | ( C_SET_ITER , [ V_Func_val {arg_binder ; body ; env}  ; V_Set (elts) ] ) ->
       Monad.bind_fold_list
         (fun _ elt ->
-          let env' = Env.extend env (arg_name,elt) in
+          let env' = Env.extend env (arg_binder,elt) in
           eval_ligo body env'
         )
         (V_Ct C_unit) elts
@@ -389,8 +389,8 @@ and eval_ligo : Ast_typed.expression -> env -> value Monad.t
         let* f' = eval_ligo f env in
         let* args' = eval_ligo args env in
         match f' with
-          | V_Func_val (arg_names, body, f_env) ->
-            let f_env' = Env.extend f_env (arg_names, args') in
+          | V_Func_val {arg_binder ; body ; env} ->
+            let f_env' = Env.extend env (arg_binder, args') in
             eval_ligo body f_env'
           | V_Func_rec (fun_name, arg_names, body, f_env) ->
             let f_env' = Env.extend f_env (arg_names, args') in
@@ -399,7 +399,7 @@ and eval_ligo : Ast_typed.expression -> env -> value Monad.t
           | _ -> failwith "trying to apply on something that is not a function"
       )
     | E_lambda {binder; result;} ->
-      return @@ V_Func_val (binder,result,env)
+      return @@ V_Func_val {arg_binder=binder ; body=result ; env} 
     | E_let_in {let_binder ; rhs; let_result} -> (
       let* rhs' = eval_ligo rhs env in
       eval_ligo (let_result) (Env.extend env (let_binder,rhs'))
