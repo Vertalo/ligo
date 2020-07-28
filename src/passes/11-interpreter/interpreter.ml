@@ -92,7 +92,6 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
       (*TODO This raise is here until we properly implement effects*)
       raise (Temporary_hack a')
       (*TODO This raise is here until we properly implement effects*)
-
     | ( C_SIZE   , [(V_Set l | V_List l)] ) -> return_ct @@ C_nat (Z.of_int @@ List.length l)
     | ( C_SIZE   , [ V_Map l            ] ) -> return_ct @@ C_nat (Z.of_int @@ List.length l)
     | ( C_SIZE   , [ V_Ct (C_string s ) ] ) -> return_ct @@ C_nat (Z.of_int @@ String.length s)
@@ -317,11 +316,8 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_NOW , [] ) -> let>> now = Now in return_ct @@ C_timestamp now
     | ( C_AMOUNT , [] ) -> let>> amt = Amount in return_ct @@ C_mutez amt
     | ( C_BALANCE , [] ) -> let>> blc = Balance in return_ct @@ C_mutez blc
-(*
-TODO ?
-C_SENDER
-C_SOURCE
-*)
+    | ( C_SENDER, [] ) -> let>> snd = Sender in return_ct @@ C_address snd
+    | ( C_SOURCE, [] ) -> let>> src = Source in return_ct @@ C_address src
     | _ ->
       let () = Format.printf "%a\n" Ast_typed.PP.constant c in
       let () = List.iter ( fun e -> Format.printf "%s\n" (Ligo_interpreter.PP.pp_value e)) operands in
@@ -343,6 +339,7 @@ C_CONTRACT_ENTRYPOINT_OPT
 C_CONTRACT_OPT
 C_CONTRACT
 C_CONTRACT_ENTRYPOINT
+C_SELF
 C_SELF_ADDRESS
 C_IMPLICIT_ACCOUNT
 
@@ -353,10 +350,6 @@ C_BYTES_PACK
 C_BYTES_UNPACK
 C_CHECK_SIGNATURE
 C_ADDRESS
-
-
-WONT DO:
-C_STEPS_TO_QUOTA
 
 *)
 

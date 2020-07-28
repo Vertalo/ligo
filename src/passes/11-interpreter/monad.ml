@@ -19,6 +19,8 @@ module Command = struct
     | Now : Z.t t
     | Amount : LT.Tez.t t
     | Balance : LT.Tez.t t
+    | Sender : string t
+    | Source : string t
     | Serialize_pack_data : 'a -> 'a t
     | Serialize_unpack_data : 'a -> 'a t
     | Tez_compare_wrapped : LT.Tez.t * LT.Tez.t -> int t
@@ -76,6 +78,8 @@ module Command = struct
     | Now -> ok (LT.Timestamp.to_zint ctxt.now, ctxt)
     | Amount -> ok (ctxt.amount, ctxt)
     | Balance -> ok (ctxt.balance, ctxt)
+    | Sender -> ok (Alpha_context.Contract.to_b58check ctxt.payer, ctxt)
+    | Source -> ok (Alpha_context.Contract.to_b58check ctxt.source, ctxt)
     | Serialize_pack_data v -> ok (v,ctxt)
     | Serialize_unpack_data v -> ok (v,ctxt)
     | Parse_contract_for_script _ -> Trace.fail `TODO
