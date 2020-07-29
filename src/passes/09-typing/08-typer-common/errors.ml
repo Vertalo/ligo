@@ -91,6 +91,7 @@ type typer_error = [
   | `Typer_uncomparable_values of string * Ast_typed.expression * Ast_typed.expression
   | `Typer_missing_key_in_record_value of string
   | `Typer_compare_tracer of typer_error
+  | `Typer_typeclass_not_a_rectangular_matrix
 ]
 
 let michelson_comb_no_record (loc:Location.t) = `Typer_michelson_comb_no_record loc
@@ -188,6 +189,7 @@ let error_uncomparable_literals name a b = `Typer_uncomparable_literals (name,a,
 let error_uncomparable_values name a b = `Typer_uncomparable_values (name,a,b)
 let missing_key_in_record_value k = `Typer_missing_key_in_record_value k
 let compare_tracer err = `Typer_compare_tracer err
+let typeclass_not_a_rectangular_matrix = `Typer_typeclass_not_a_rectangular_matrix
 
 let rec error_ppformat : display_format:string display_format ->
   Format.formatter -> typer_error -> unit =
@@ -466,6 +468,8 @@ let rec error_ppformat : display_format:string display_format ->
     | `Typer_expected_int _ | `Typer_expected_bool _
     | `Typer_declaration_order_record _| `Typer_declaration_order_variant _
     | `Typer_not_matching _ | `Typer_uncomparable_types _ | `Typer_typeclass_error _) as err -> no_loc_children f (Location.Virtual "") err
+    | `Typer_typeclass_not_a_rectangular_matrix ->
+      Format.fprintf f "@[<hv>internal error: typeclass is not represented as a rectangular matrix with one column per argument@]"
   )
 
 and no_loc_children : Format.formatter -> Location.t -> typer_error -> unit = fun f exploc err ->
@@ -1490,5 +1494,11 @@ let rec error_jsonformat : typer_error -> Yojson.t = fun a ->
     let content = `Assoc [
       ("message", `String "not equal") ;
       ("children", error_jsonformat err)
+    ] in
+    json_error ~stage ~content
+  | `Typer_typeclass_not_a_rectangular_matrix ->
+    let message = `String "internal error: typeclass is not represented as a rectangular matrix with one column per argument" in
+    let content = `Assoc [
+      ("message", message);
     ] in
     json_error ~stage ~content

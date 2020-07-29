@@ -1,4 +1,4 @@
-[@@@warning "-30"]
+[@@@warning "-30-32"]
 
 open Types_utils
 include Stage_common.Enums (*@ follow ../common/enums.ml *)
@@ -416,6 +416,7 @@ and c_constructor_simpl = {
   reason_constr_simpl : string ;
   tv : type_variable;
   c_tag : constant_tag;
+  (* Types wih no arguments like int, string etc. have an empty tv_list *)
   tv_list : type_variable_list;
 }
 and c_row_simpl = {
@@ -469,6 +470,16 @@ type output_break_ctor = {
 type output_specialize1 = {
     poly : c_poly_simpl ;
     a_k_var : c_constructor_simpl ;
+  }
+
+type type_variable_set = type_variable poly_set
+type refined_typeclass = {
+  tcs : c_typeclass_simpl ;
+  vars : type_variable_set ;
+}
+type output_tc_fundep = {
+    tc : refined_typeclass ;
+    c : c_constructor_simpl ;
   }
 
 type m_break_ctor__already_selected = output_break_ctor poly_set

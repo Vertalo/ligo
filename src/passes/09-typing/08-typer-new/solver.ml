@@ -14,6 +14,7 @@ let propagator_heuristics =
   [
     Heuristic_break_ctor.heuristic ;
     Heuristic_specialize1.heuristic ;
+    Heuristic_tc_fundep.heuristic ;
   ]
 
 let init_propagator_heuristic (Propagator_heuristic { selector ; propagator ; printer ; comparator ; initial_private_storage }) =

@@ -10,6 +10,8 @@ let rec take n = function
   | _ when n = 0 -> []
   | hd :: tl -> hd :: take (n - 1) tl
 
+let split3 l = List.fold_left (fun (la, lb, lc) (a, b, c) -> (a :: la , b :: lb, c :: lc)) ([],[],[]) l
+
 let map ?(acc = []) f lst =
   let rec aux acc f = function
     | [] -> acc
