@@ -385,7 +385,7 @@ and eval_ligo : Ast_typed.expression -> env -> value Monad.t
   = fun term env ->
     let open Monad in
     match term.expression_content with
-    | E_application ({lamb = f; args}) -> (
+    | E_application {lamb = f; args} -> (
         let* f' = eval_ligo f env in
         let* args' = eval_ligo args env in
         match f' with
@@ -485,17 +485,19 @@ and eval_ligo : Ast_typed.expression -> env -> value Monad.t
       return @@ V_Func_rec (fun_name, lambda.binder, lambda.result, env)
     | E_raw_code _ -> failwith "Can't evaluate a raw code insertion"
 
+open Proto_alpha_utils.Memory_proto_alpha
 let eval : ?options:options -> Ast_typed.program -> (string , _) result =
-  fun ?(options = default_options ()) prg ->
+  fun ?(options = default_options) prg ->
+  let init_ctxt = Ligo_interpreter.Mini_proto.option_to_context options in
   let aux  (pp,top_env) el =
     match Location.unwrap el with
     | Ast_typed.Declaration_constant {binder; expr ; inline=_ ; _} ->
        let%bind (v,_ctxt) =
          (*TODO This TRY-CATCH is here until we properly implement effects*)
          try
-           Monad.eval (eval_ligo expr top_env) options None
+           Monad.eval (eval_ligo expr top_env) init_ctxt None
          with Temporary_hack s ->
-           ok (V_Failure s, options)
+           ok (V_Failure s, init_ctxt)
               (*TODO This TRY-CATCH is here until we properly implement effects*)
        in
       let pp' = pp^"\n val "^(Var.to_name binder.wrap_content)^" = "^(Ligo_interpreter.PP.pp_value v) in

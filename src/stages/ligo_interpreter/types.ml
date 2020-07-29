@@ -1,8 +1,5 @@
 include Ast_typed.Types
 
-type options = Proto_alpha_utils.Memory_proto_alpha.options
-let default_options () = Proto_alpha_utils.Memory_proto_alpha.default_options
-
 module Env = Map.Make(
   struct
     type t = expression_variable
@@ -15,20 +12,21 @@ exception Temporary_hack of string
 
 module Tez = Proto_alpha_utils.Memory_proto_alpha.Protocol.Alpha_context.Tez
 module Timestamp = Memory_proto_alpha.Protocol.Alpha_context.Script_timestamp
+module Int = Int_repr_copied
 
 type env = value Env.t
 
 and func_val = {
-  arg_binder : expression_variable ;
-  body : Ast_typed.expression ;
-  env : env ;
-}
+    arg_binder : expression_variable ;
+    body : Ast_typed.expression ;
+    env : env ;
+  }
 
 and constant_val =
   | C_unit
   | C_bool of bool
-  | C_int of Int_repr_copied.z Int_repr_copied.num
-  | C_nat of Int_repr_copied.n Int_repr_copied.num
+  | C_int of Int.z Int.num
+  | C_nat of Int.n Int.num
   | C_timestamp of Z.t
   | C_mutez of Tez.t
   | C_string of string

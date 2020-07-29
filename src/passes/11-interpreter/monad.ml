@@ -3,9 +3,11 @@ open Protocol
 open Trace
 
 module LT = Ligo_interpreter.Types
+module Mini_proto = Ligo_interpreter.Mini_proto
 module Int_repr = Ligo_interpreter.Int_repr_copied
 
-type context = LT.options
+(* type context = Proto_alpha_utils.Memory_proto_alpha.options *)
+type context = Ligo_interpreter.Mini_proto.t
 type execution_trace = unit
 type 'a result_monad = ('a,Errors.interpreter_error) result
 
@@ -14,7 +16,6 @@ module Command = struct
   type 'a t =
     | Fail_overflow : Location.t -> 'a t
     | Fail_reject : Location.t * LT.value -> 'a t
-    | Fresh_internal_nonce : int t
     | Parse_contract_for_script : Alpha_context.Contract.t * string -> unit t
     | Now : Z.t t
     | Amount : LT.Tez.t t
@@ -70,16 +71,11 @@ module Command = struct
       fail (`Ligo_interpret_overflow location)
     | Fail_reject (location, e) ->
       fail (`Ligo_interpret_reject (location,e))
-    | Fresh_internal_nonce ->
-      let%bind (tezos_context, nonce) =
-        Proto_alpha_utils.Trace.trace_alpha_tzresult (fun _ -> `TODO) @@
-        Alpha_context.fresh_internal_nonce ctxt.tezos_context in
-      ok (nonce, { ctxt with tezos_context })
-    | Now -> ok (LT.Timestamp.to_zint ctxt.now, ctxt)
-    | Amount -> ok (ctxt.amount, ctxt)
-    | Balance -> ok (ctxt.balance, ctxt)
-    | Sender -> ok (Alpha_context.Contract.to_b58check ctxt.payer, ctxt)
-    | Source -> ok (Alpha_context.Contract.to_b58check ctxt.source, ctxt)
+    | Now -> ok (LT.Timestamp.to_zint ctxt.step_constants.now, ctxt)
+    | Amount -> ok (ctxt.step_constants.amount, ctxt)
+    | Balance -> ok (ctxt.step_constants.balance, ctxt)
+    | Sender -> ok (Alpha_context.Contract.to_b58check ctxt.step_constants.payer, ctxt)
+    | Source -> ok (Alpha_context.Contract.to_b58check ctxt.step_constants.source, ctxt)
     | Serialize_pack_data v -> ok (v,ctxt)
     | Serialize_unpack_data v -> ok (v,ctxt)
     | Parse_contract_for_script _ -> Trace.fail `TODO
