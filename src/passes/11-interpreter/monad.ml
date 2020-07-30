@@ -16,6 +16,10 @@ module Command = struct
   type 'a t =
     | Fail_overflow : Location.t -> 'a t
     | Fail_reject : Location.t * LT.value -> 'a t
+    | Inject_script : string * LT.value * LT.value -> unit t
+    | Set_now : Z.t -> unit t
+    | Set_source : string -> unit t
+    | Set_balance : string * LT.Tez.t -> unit t
     | Parse_contract_for_script : Alpha_context.Contract.t * string -> unit t
     | Now : Z.t t
     | Amount : LT.Tez.t t
@@ -71,6 +75,27 @@ module Command = struct
       fail (`Ligo_interpret_overflow location)
     | Fail_reject (location, e) ->
       fail (`Ligo_interpret_reject (location,e))
+    | Inject_script (addr, code, storage) ->
+      let script : Mini_proto.script = { code ; storage } in
+      let state : Mini_proto.state = {script ; script_balance = Alpha_context.Tez.zero } in
+      let state = Mini_proto.StateMap.add (Address addr) state ctxt.state in
+      ok ((), { ctxt with state} )
+    | Set_now now ->
+      let now = Alpha_context.Script_timestamp.of_zint now in
+      ok ((), { ctxt with step_constants = { ctxt.step_constants with now } })
+    | Set_source source ->
+      let%bind source =
+        Proto_alpha_utils.Trace.trace_alpha_tzresult (fun _ -> `TODO) @@
+        Alpha_context.Contract.of_b58check source in
+      ok ((), { ctxt with step_constants = { ctxt.step_constants with source } })
+    | Set_balance (addr, amt) ->
+      let aux : Mini_proto.state option -> Mini_proto.state option = fun state_opt ->
+        match state_opt with
+        | Some state -> Some { state with script_balance = amt }
+        | None -> None
+      in
+      let state = Mini_proto.StateMap.update (Address addr) aux ctxt.state in
+      ok ((), {ctxt with state})
     | Now -> ok (LT.Timestamp.to_zint ctxt.step_constants.now, ctxt)
     | Amount -> ok (ctxt.step_constants.amount, ctxt)
     | Balance -> ok (ctxt.step_constants.balance, ctxt)

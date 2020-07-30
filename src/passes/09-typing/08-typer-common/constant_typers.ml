@@ -642,6 +642,31 @@ let rec pair_comparator : string -> typer = fun s -> typer_2 s @@ fun a b ->
 and comparator : string -> typer = fun s -> typer_2 s @@ fun a b ->
   bind_or (pair_comparator s [a;b] @@ t_wildcard (), simple_comparator s [a;b] @@ t_wildcard ())
 
+let test_inject_script = typer_3 "TEST_INJECT_SCRIPT" @@ fun addr f init_storage  ->
+  let t_addr = t_address () in
+  let%bind (args , ret) = trace_option (expected_function f) @@ get_t_function f in
+  let%bind (_param,storage_in) = trace_option (expected_pair args) @@ get_t_pair args in
+  let%bind (oplist,storage_out) = trace_option (expected_pair ret) @@ get_t_pair ret in
+  let%bind () = trace_option (expected_op_list oplist) @@ assert_t_list_operation oplist in
+  let%bind () = assert_eq addr t_addr in
+  let%bind () = assert_eq storage_in init_storage in
+  let%bind () = assert_eq storage_in storage_out in
+  ok (t_unit ())
+
+let test_set_now = typer_1 "TEST_SET_NOW" @@ fun time ->
+  let%bind () = assert_eq time (t_timestamp ()) in
+  ok (t_unit ())
+
+let test_set_source = typer_1 "TEST_SET_SOURCE" @@ fun s ->
+  let%bind () = assert_eq s (t_address ()) in
+  ok (t_unit ())
+
+let test_set_balance = typer_2 "TEST_SET_BALANCE" @@ fun addr b ->
+  let%bind () = assert_eq addr (t_address ()) in
+  let%bind () = assert_eq b (t_mutez ()) in
+  ok (t_unit ())
+
+
 let constant_typers c loc : (typer , typer_error) result = match c with
   | C_INT                 -> ok @@ int ;
   | C_UNIT                -> ok @@ unit loc;
@@ -738,4 +763,8 @@ let constant_typers c loc : (typer , typer_error) result = match c with
   | C_CONVERT_TO_LEFT_COMB  -> ok @@ convert_to_left_comb ;
   | C_CONVERT_FROM_RIGHT_COMB -> ok @@ convert_from_right_comb ;
   | C_CONVERT_FROM_LEFT_COMB  -> ok @@ convert_from_left_comb ;
-  | _                     -> fail (corner_case "typer not implemented for constant")
+  | C_TEST_INJECT_SCRIPT -> ok @@ test_inject_script ;
+  | C_TEST_SET_NOW -> ok @@ test_set_now ;
+  | C_TEST_SET_SOURCE -> ok @@ test_set_source ;
+  | C_TEST_SET_BALANCE -> ok @@ test_set_balance ;
+  | _ as cst -> fail (corner_case @@ Format.asprintf "typer not implemented for constant %a" PP.constant cst)

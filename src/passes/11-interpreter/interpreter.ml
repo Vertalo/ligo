@@ -318,6 +318,19 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_BALANCE , [] ) -> let>> blc = Balance in return_ct @@ C_mutez blc
     | ( C_SENDER, [] ) -> let>> snd = Sender in return_ct @@ C_address snd
     | ( C_SOURCE, [] ) -> let>> src = Source in return_ct @@ C_address src
+    (* Test operators *)
+    | ( C_TEST_INJECT_SCRIPT, [ V_Ct (C_address addr) ; code ; storage ] ) ->
+      let>> () = Inject_script (addr, code, storage) in
+      return_ct C_unit
+    | ( C_TEST_SET_BALANCE , [ V_Ct (C_address addr) ; V_Ct (C_mutez amt) ] ) ->
+      let>> () = Set_balance (addr, amt) in
+      return_ct C_unit
+    | ( C_TEST_SET_NOW , [ V_Ct (C_timestamp t) ] ) ->
+      let>> () = Set_now t in
+      return_ct C_unit
+    | ( C_TEST_SET_SOURCE , [ V_Ct (C_address addr) ] ) ->
+      let>> () = Set_source addr in
+      return_ct C_unit
     | _ ->
       let () = Format.printf "%a\n" Ast_typed.PP.constant c in
       let () = List.iter ( fun e -> Format.printf "%s\n" (Ligo_interpreter.PP.pp_value e)) operands in

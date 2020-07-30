@@ -188,6 +188,13 @@ module Tree_abstraction = struct
     | "Layout.convert_from_right_comb" -> Some C_CONVERT_FROM_RIGHT_COMB
     | "Layout.convert_from_left_comb" -> Some C_CONVERT_FROM_LEFT_COMB
 
+    (* Testing module *)
+
+    | "Test.inject_script" -> Some C_TEST_INJECT_SCRIPT
+    | "Test.set_now" -> Some C_TEST_SET_NOW
+    | "Test.set_source" -> Some C_TEST_SET_SOURCE
+    | "Test.set_balance" -> Some C_TEST_SET_BALANCE
+
     | _ -> None
 
 

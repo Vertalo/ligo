@@ -161,3 +161,8 @@ type constant' =
   | C_CONVERT_TO_RIGHT_COMB
   | C_CONVERT_FROM_LEFT_COMB
   | C_CONVERT_FROM_RIGHT_COMB
+  (* Tests (ligo interpreter only *)
+  | C_TEST_INJECT_SCRIPT
+  | C_TEST_SET_NOW
+  | C_TEST_SET_SOURCE
+  | C_TEST_SET_BALANCE

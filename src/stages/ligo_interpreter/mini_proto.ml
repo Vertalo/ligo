@@ -21,7 +21,7 @@ type step_constants = {
     self : Contract.t ;
     amount : Tez.t ;
     balance : Tez.t ;
-    chain_id : Environment.Chain_id.t ;
+    (* chain_id : Environment.Chain_id.t ; *)
     now : Script_timestamp.t ;
   }
 
@@ -31,6 +31,8 @@ type t = {
   }
 
 let option_to_context : Proto_alpha_utils.Memory_proto_alpha.options -> t =
-  fun {tezos_context=_TODO;source;payer;self;amount;chain_id;balance;now} ->
-    { state = StateMap.empty ;
-      step_constants = { source ; payer ; self ; amount ; balance ; chain_id ; now } }
+  fun {tezos_context=_TODO;source;payer;self;amount;chain_id=_;balance;now} ->
+    {
+      state = StateMap.empty ;
+      step_constants = { source ; payer ; self ; amount ; balance ; now }
+    }
