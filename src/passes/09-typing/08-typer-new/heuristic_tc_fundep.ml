@@ -31,17 +31,17 @@ let make_refined_typeclass tcs : refined_typeclass = { tcs ; vars = set_of_vars 
    now use the entire typeclass and ignore the "reason" fields in the
    compare. *)
 (* TODO: move to AST. *)
-let truc_to_tc truc = truc
-let compare_truc = Solver_should_be_generated.compare_c_typeclass_simpl
+let typeclass_identifier_to_tc typeclass_identifier = typeclass_identifier
+let compare_typeclass_identifier = Solver_should_be_generated.compare_c_typeclass_simpl
 
-type truc = Ast_typed.c_typeclass_simpl
-type 'v trucMap = (truc, 'v) RedBlackTrees.PolyMap.t
-type refined_typeclass_trucMap = refined_typeclass trucMap
-type truc_set = truc Set.t
-type truc_set_map = truc_set typeVariableMap
+type typeclass_identifier = Ast_typed.c_typeclass_simpl
+type 'v typeclass_identifierMap = (typeclass_identifier, 'v) RedBlackTrees.PolyMap.t
+type refined_typeclass_typeclass_identifierMap = refined_typeclass typeclass_identifierMap
+type typeclass_identifier_set = typeclass_identifier Set.t
+type typeclass_identifier_set_map = typeclass_identifier_set typeVariableMap
 type private_storage = {
-  refined_typeclasses: refined_typeclass_trucMap ;
-  typeclasses_constrained_by : truc_set_map ;
+  refined_typeclasses: refined_typeclass_typeclass_identifierMap ;
+  typeclasses_constrained_by : typeclass_identifier_set_map ;
 }
 
 let splice f idx l =
@@ -328,7 +328,7 @@ let get_or_add_refined_typeclass tc { refined_typeclasses; typeclasses_constrain
     None ->
     let rtc = make_refined_typeclass tc in
     let refined_typeclasses = PolyMap.add tc rtc refined_typeclasses in
-    let aux' set = Some (Set.add tc (match set with Some set -> set | None -> Set.create ~cmp:compare_truc)) in
+    let aux' set = Some (Set.add tc (match set with Some set -> set | None -> Set.create ~cmp:compare_typeclass_identifier)) in
     let aux = (fun typeclasses_constrained_by tv ->
            Map.update tv (aux') typeclasses_constrained_by) in
     let typeclasses_constrained_by =
@@ -418,7 +418,7 @@ let heuristic =
       printer = Ast_typed.PP_generic.output_tc_fundep ;
       comparator = Solver_should_be_generated.compare_output_tc_fundep ;
       initial_private_storage = {
-        refined_typeclasses = Map.create ~cmp:compare_truc ;
+        refined_typeclasses = Map.create ~cmp:compare_typeclass_identifier ;
         typeclasses_constrained_by = Map.create ~cmp:Var.compare ;
       } ;
     }
