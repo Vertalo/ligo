@@ -74,8 +74,8 @@ let rec get_operator : constant' -> type_expression -> expression args -> (predi
       match s with
       | C_SELF -> (
           let%bind entrypoint_as_string = match lst with
-            | Arg_cons (_, { content = E_literal (D_string s); type_expression = _ }, _) -> (
-                match String.split_on_char '%' s with
+            | Arg_cons (_, { content = E_literal (Literal_string s); type_expression = _ }, _) -> (
+                match String.split_on_char '%' (Ligo_string.extract s) with
                 | ["" ; s] -> ok @@ String.concat "" ["%" ; (String.uncapitalize_ascii s)]
                 | _ -> fail @@ corner_case ~loc:__LOC__ "mini_c . SELF"
             )
@@ -163,9 +163,10 @@ let rec get_operator : constant' -> type_expression -> expression args -> (predi
           let%bind r = trace_option (corner_case ~loc:__LOC__ "wrongtype") @@  Mini_c.get_t_contract ty in
           let%bind r_ty = Compiler_type.type_ r in
           let%bind entry = match lst with
-            | Arg_cons (_, { content = E_literal (D_string entry); type_expression = _ }, _) -> ok entry
+            | Arg_cons (_, { content = E_literal (Literal_string entry); type_expression = _ }, _) -> ok entry
             | _ ->
                fail @@ contract_entrypoint_must_be_literal ~loc:__LOC__ in
+          let entry = Ligo_string.extract entry in
           ok @@ simple_binary @@ seq [
             i_drop ; (* drop the entrypoint... *)
             prim ~annot:[entry] ~children:[r_ty] I_CONTRACT ;
@@ -176,9 +177,10 @@ let rec get_operator : constant' -> type_expression -> expression args -> (predi
           let%bind r = trace_option (corner_case ~loc:__LOC__ "wrongtype") @@  Mini_c.get_t_contract tc in
           let%bind r_ty = Compiler_type.type_ r in
           let%bind entry = match lst with
-            | Arg_cons (_, { content = E_literal (D_string entry); type_expression = _ }, _) -> ok entry
+            | Arg_cons (_, { content = E_literal (Literal_string entry); type_expression = _ }, _) -> ok entry
             | _ ->
                fail @@ contract_entrypoint_must_be_literal ~loc:__LOC__ in
+          let entry = Ligo_string.extract entry in
           ok @@ simple_binary @@ seq [
             i_drop ; (* drop the entrypoint... *)
             prim ~annot:[entry] ~children:[r_ty] I_CONTRACT ;
@@ -202,66 +204,24 @@ let rec get_operator : constant' -> type_expression -> expression args -> (predi
       | x -> fail @@ corner_case ~loc:__LOC__ (Format.asprintf "predicate \"%a\" doesn't exist" Mini_c.PP.constant x)
     )
 
-and translate_value (v:value) ty : (michelson , stacking_error) result = match v with
-  | D_bool b -> ok @@ prim (if b then D_True else D_False)
-  | D_int n -> ok @@ int n
-  | D_nat n -> ok @@ int n
-  | D_timestamp n -> ok @@ int n
-  | D_mutez n -> ok @@ int n
-  | D_string s -> ok @@ string s
-  | D_bytes s -> ok @@ bytes s
-  | D_unit -> ok @@ prim D_Unit
-  | D_pair (a, b) -> (
-      let%bind (a_ty , b_ty) = trace_option (corner_case ~loc:__LOC__ "wrongtype") @@  Mini_c.get_t_pair ty in
-      let%bind a = translate_value a a_ty in
-      let%bind b = translate_value b b_ty in
-      ok @@ prim ~children:[a;b] D_Pair
-    )
-  | D_left a -> (
-      let%bind (a_ty , _) = trace_option (corner_case ~loc:__LOC__ "wrongtype") @@  Mini_c.get_t_or ty in
-      let%bind a' = translate_value a a_ty in
-      ok @@ prim ~children:[a'] D_Left
-    )
-  | D_right b -> (
-      let%bind (_ , b_ty) = trace_option (corner_case ~loc:__LOC__ "wrongtype") @@  Mini_c.get_t_or ty in
-      let%bind b' = translate_value b b_ty in
-      ok @@ prim ~children:[b'] D_Right
-    )
-  | D_none -> ok @@ prim D_None
-  | D_some s ->
-      let%bind s' = translate_value s ty in
-      ok @@ prim ~children:[s'] D_Some
-  | D_map lst -> (
-      let%bind (k_ty , v_ty) = trace_option (corner_case ~loc:__LOC__ "wrongtype") @@  Mini_c.get_t_map ty in
-      let%bind lst' =
-        let aux (k , v) = bind_pair (translate_value k k_ty , translate_value v v_ty) in
-        bind_map_list aux lst in
-      let sorted = List.sort (fun (x , _) (y , _) -> compare x y) lst' in
-      let aux (a, b) = prim ~children:[a;b] D_Elt in
-      ok @@ seq @@ List.map aux sorted
-    )
-  | D_big_map lst -> (
-      let%bind (k_ty , v_ty) = trace_option (corner_case ~loc:__LOC__ "wrongtype") @@  Mini_c.get_t_big_map ty in
-      let%bind lst' =
-        let aux (k , v) = bind_pair (translate_value k k_ty , translate_value v v_ty) in
-        bind_map_list aux lst in
-      let sorted = List.sort (fun (x , _) (y , _) -> compare x y) lst' in
-      let aux (a, b) = prim ~children:[a;b] D_Elt in
-      ok @@ seq @@ List.map aux sorted
-    )
-  | D_list lst -> (
-      let%bind e_ty = trace_option (corner_case ~loc:__LOC__ "wrongtype") @@  Mini_c.get_t_list ty in
-      let%bind lst' = bind_map_list (fun x -> translate_value x e_ty) lst in
-      ok @@ seq lst'
-    )
-  | D_set lst -> (
-      let%bind e_ty = trace_option (corner_case ~loc:__LOC__ "wrongtype") @@  Mini_c.get_t_set ty in
-      let%bind lst' = bind_map_list (fun x -> translate_value x e_ty) lst in
-      let sorted = List.sort compare lst' in
-      ok @@ seq sorted
-    )
-  | D_operation _ ->
-      fail @@ corner_case ~loc:__LOC__ "can't compile an operation"
+and translate_literal (l : literal) ty : (michelson , stacking_error) result = match l with
+  | Literal_unit -> ok (prim I_UNIT)
+  | Literal_int n
+  | Literal_nat n
+  | Literal_timestamp n
+  | Literal_mutez n
+    -> ok (i_push ty (Int (-1, n)))
+  | Literal_string s
+    -> ok (i_push ty (String (-1, Ligo_string.extract s)))
+  | Literal_address s
+  | Literal_signature s
+  | Literal_key s
+  | Literal_key_hash s
+    -> ok (i_push ty (String (-1, s)))
+  | Literal_bytes b
+    -> ok (i_push ty (Bytes (-1, b)))
+  | Literal_chain_id _ -> fail @@ corner_case ~loc:__LOC__ "can't compile a chain_id"
+  | Literal_operation _ -> fail @@ corner_case ~loc:__LOC__ "can't compile an operation"
 
 and translate_expression (expr : expression) env outer : (michelson , stacking_error) result =
   let expr' = expr.content in
@@ -270,9 +230,9 @@ and translate_expression (expr : expression) env outer : (michelson , stacking_e
 
   match expr' with
   | E_literal v ->
-      let%bind v = translate_value v ty in
       let%bind t = Compiler_type.type_ ty in
-      return @@ i_push t v
+      let%bind v = translate_literal v t in
+      return v
   | E_closure body -> (
       match ty.type_content with
       | T_function (_ , output_ty) ->

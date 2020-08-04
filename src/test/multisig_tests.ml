@@ -48,9 +48,8 @@ let empty_op_list =
 let empty_message = e_lambda (Location.wrap @@ Var.of_name "arguments")
   (Some (t_unit ())) (Some (t_list (t_operation ())))
   empty_op_list
-let chain_id_zero = e_chain_id @@ Tezos_crypto.Base58.simple_encode
-  Tezos_base__TzPervasives.Chain_id.b58check_encoding
-  Tezos_base__TzPervasives.Chain_id.zero
+let chain_id_zero =
+  e_bytes_raw (Tezos_crypto.Chain_id.to_bytes Tezos_base__TzPervasives.Chain_id.zero)
 
 (* sign the message 'msg' with 'keys', if 'is_valid'=false the providid signature will be incorrect *)
 let params counter msg keys is_validl f s = 

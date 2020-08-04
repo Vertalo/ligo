@@ -88,6 +88,8 @@ let convert_constant' : I.constant' -> O.constant' = function
   | C_CDR -> C_CDR
   | C_LEFT -> C_LEFT
   | C_RIGHT -> C_RIGHT
+  | C_TRUE -> C_TRUE
+  | C_FALSE -> C_FALSE
   (* Set *)
   | C_SET_EMPTY -> C_SET_EMPTY
   | C_SET_LITERAL -> C_SET_LITERAL
@@ -207,6 +209,8 @@ let unconvert_constant' : O.constant' -> I.constant' = function
   | C_CDR -> C_CDR
   | C_LEFT -> C_LEFT
   | C_RIGHT -> C_RIGHT
+  | C_TRUE -> C_TRUE
+  | C_FALSE -> C_FALSE
   (* Set *)
   | C_SET_EMPTY -> C_SET_EMPTY
   | C_SET_LITERAL -> C_SET_LITERAL

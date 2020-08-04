@@ -198,7 +198,7 @@ let%expect_test _ =
   let var x = wrap (E_variable x) in
   let app f x = wrap (E_application (f, x)) in
   let lam x u = wrap (E_closure { binder = x ; body = u }) in
-  let unit = wrap (E_literal D_unit) in
+  let unit = wrap (E_constant { cons_name = C_UNIT ; arguments = [] }) in
 
   (* substituted var *)
   Var.reset_counter () ;
@@ -207,8 +207,8 @@ let%expect_test _ =
     ~x:x
     ~expr:unit ;
   [%expect{|
-    (x)[x := L(unit)] =
-    L(unit) |}] ;
+    (x)[x := UNIT()] =
+    UNIT() |}] ;
 
   (* other var *)
   Var.reset_counter () ;
@@ -217,7 +217,7 @@ let%expect_test _ =
     ~x:x
     ~expr:unit ;
   [%expect{|
-    (y)[x := L(unit)] =
+    (y)[x := UNIT()] =
     y
   |}] ;
 
@@ -228,7 +228,7 @@ let%expect_test _ =
     ~x:x
     ~expr:unit ;
   [%expect{|
-    (fun x -> (x))[x := L(unit)] =
+    (fun x -> (x))[x := UNIT()] =
     fun x -> (x)
   |}] ;
 
@@ -239,8 +239,8 @@ let%expect_test _ =
     ~x:x
     ~expr:unit ;
   [%expect{|
-    (fun y -> (x))[x := L(unit)] =
-    fun y -> (L(unit))
+    (fun y -> (x))[x := UNIT()] =
+    fun y -> (UNIT())
   |}] ;
 
   (* closure capture-avoidance *)
@@ -261,8 +261,8 @@ let%expect_test _ =
     ~x:x
     ~expr:unit ;
   [%expect{|
-    (let x = x in x)[x := L(unit)] =
-    let x = L(unit) in x
+    (let x = x in x)[x := UNIT()] =
+    let x = UNIT() in x
   |}] ;
 
   (* let-in not shadowed *)
@@ -272,8 +272,8 @@ let%expect_test _ =
     ~x:x
     ~expr:unit ;
   [%expect{|
-    (let y = x in x)[x := L(unit)] =
-    let y = L(unit) in L(unit)
+    (let y = x in x)[x := UNIT()] =
+    let y = UNIT() in UNIT()
   |}] ;
 
   (* let-in capture avoidance *)
@@ -295,8 +295,8 @@ let%expect_test _ =
     ~x:x
     ~expr:unit ;
   [%expect{|
-    (for_ITER x of x do ( x ))[x := L(unit)] =
-    for_ITER x of L(unit) do ( x )
+    (for_ITER x of x do ( x ))[x := UNIT()] =
+    for_ITER x of UNIT() do ( x )
   |}] ;
 
   (* iter not shadowed *)
@@ -306,8 +306,8 @@ let%expect_test _ =
     ~x:x
     ~expr:unit ;
   [%expect{|
-    (for_ITER y of x do ( x ))[x := L(unit)] =
-    for_ITER y of L(unit) do ( L(unit) )
+    (for_ITER y of x do ( x ))[x := UNIT()] =
+    for_ITER y of UNIT() do ( UNIT() )
   |}] ;
 
   (* iter capture-avoiding *)
@@ -331,8 +331,8 @@ let%expect_test _ =
     ~x:x
     ~expr:unit ;
   [%expect{|
-    (x ?? x : (x :: y) -> x)[x := L(unit)] =
-    L(unit) ?? L(unit) : (x :: y) -> x
+    (x ?? x : (x :: y) -> x)[x := UNIT()] =
+    UNIT() ?? UNIT() : (x :: y) -> x
   |}] ;
 
   (* if_cons shadowed 2 *)
@@ -345,8 +345,8 @@ let%expect_test _ =
     ~x:x
     ~expr:unit ;
   [%expect{|
-    (x ?? x : (y :: x) -> x)[x := L(unit)] =
-    L(unit) ?? L(unit) : (y :: x) -> x
+    (x ?? x : (y :: x) -> x)[x := UNIT()] =
+    UNIT() ?? UNIT() : (y :: x) -> x
   |}] ;
 
   (* if_cons not shadowed *)
@@ -359,8 +359,8 @@ let%expect_test _ =
     ~x:x
     ~expr:unit ;
   [%expect{|
-    (x ?? x : (y :: z) -> x)[x := L(unit)] =
-    L(unit) ?? L(unit) : (y :: z) -> L(unit)
+    (x ?? x : (y :: z) -> x)[x := UNIT()] =
+    UNIT() ?? UNIT() : (y :: z) -> UNIT()
   |}] ;
 
   (* if_cons capture avoidance 1 *)

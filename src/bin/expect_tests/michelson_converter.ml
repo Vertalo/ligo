@@ -175,7 +175,7 @@ let%expect_test _ =
                     DUG 2 ;
                     COMPARE ;
                     NEQ ;
-                    IF { PUSH string "NOT_OWNER" ; FAILWITH } { PUSH unit Unit } ;
+                    IF { PUSH string "NOT_OWNER" ; FAILWITH } { UNIT } ;
                     DROP ;
                     DIG 2 ;
                     CAR ;

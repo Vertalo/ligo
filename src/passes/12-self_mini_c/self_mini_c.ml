@@ -29,7 +29,9 @@ let is_pure_constant : constant' -> bool =
   | C_NIL | C_CONS
   | C_NEG | C_OR | C_AND | C_XOR | C_NOT
   | C_EQ  | C_NEQ | C_LT | C_LE | C_GT | C_GE
-  | C_SOME
+  | C_NONE | C_SOME
+  | C_LEFT | C_RIGHT
+  | C_TRUE | C_FALSE
   | C_UPDATE | C_MAP_FIND_OPT | C_MAP_ADD | C_MAP_UPDATE
   | C_INT | C_ABS | C_IS_NAT
   | C_ADDRESS
