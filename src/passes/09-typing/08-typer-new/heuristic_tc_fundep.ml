@@ -30,11 +30,16 @@ let make_refined_typeclass tcs : refined_typeclass = { tcs ; vars = set_of_vars 
 (* TODO: concise unique representant for typeclass constraints, for
    now use the entire typeclass and ignore the "reason" fields in the
    compare. *)
-(* TODO: move to AST. *)
-let typeclass_identifier_to_tc typeclass_identifier = typeclass_identifier
-let compare_typeclass_identifier = Solver_should_be_generated.compare_c_typeclass_simpl
 
-type typeclass_identifier = Ast_typed.c_typeclass_simpl
+(* TODO: move to AST. *)
+(* TODO: /!\ using the typeclass itself as its identifier won't work, as
+   soon as we have some unification variables getting merged in the
+   union-find, various copies of the same representant won't match for
+   a simple equality, plus it's slow.
+   How about storing a unique ID for each constraint when it gets added to the db? *)
+type typeclass_identifier = (* TypeclassIdentifier of *) Ast_typed.c_typeclass_simpl
+let typeclass_identifier_to_tc ((* TypeclassIdentifier  *)typeclass_identifier) = typeclass_identifier
+let compare_typeclass_identifier ((* TypeclassIdentifier *) a) ((* TypeclassIdentifier *) b) = Solver_should_be_generated.compare_c_typeclass_simpl a b
 type 'v typeclass_identifierMap = (typeclass_identifier, 'v) RedBlackTrees.PolyMap.t
 type refined_typeclass_typeclass_identifierMap = refined_typeclass typeclass_identifierMap
 type typeclass_identifier_set = typeclass_identifier Set.t
@@ -206,127 +211,11 @@ let deduce_and_clean : c_typeclass_simpl -> (c_constructor_simpl list * c_typecl
   let%bind tcs' = transpose_back tcs.reason_typeclass_simpl (List.combine vars tcs' (* TODO: is this correct? *)) in
   ok (deduced, tcs')
 
-module Test = struct
-  let mk p_ctor_tag p_ctor_args = { tsrc = "unit test"; t = P_constant { p_ctor_tag ; p_ctor_args ; } ; }
-  (* A bunch of arbitrary types *)
-  let (int, unit, nat, string) = (mk C_int [], mk C_unit [], mk C_nat [], mk C_string [])
-  (* An arbitrary two-argument type constructor. *)
-  let map (k,v) = mk C_map [k; v]
-  (* A bunch of type variables: *)
-  let (m,n,x,y,z) = let v name = Var.fresh ~name () in v "m", v "n", v "x", v "y", v "z"
-
-  let test
-      (* Restriction function under test *)
-      (restrict : c_constructor_simpl -> c_typeclass_simpl -> c_typeclass_simpl)
-      (* New info: a variable assignment constraint: *)
-      tv (_eq : string) c_tag tv_list
-      (* Initial typeclass constraint: *)
-      args (_in : string) tc
-      (* Intermediate step (not tested): *)
-      (_intermediate : type_value list option list)
-      (* Expected restricted typeclass:: *)
-      expected_args (_in : string) expected_tc =
-    let info = { reason_constr_simpl = "unit test" ; tv ; c_tag ; tv_list } in
-    let tc =  { reason_typeclass_simpl = "unit test" ; args ; tc } in
-    let expected =  { reason_typeclass_simpl = "unit test" ; args = expected_args ; tc = expected_tc } in
-    assert (Ast_typed.Compare_generic.c_typeclass_simpl (restrict info tc) expected = 0)
-
-  let tests1 restrict =
-    test restrict
-      (* New info: a variable assignment constraint: *)
-      x "=" C_nat[]
-      (* Initial typeclass constraint: *)
-      [x;y;z] "∈" [[int ; unit ; unit] ; [nat ; int ; int] ; [nat ; int ; string] ; ]
-      (* Intermediate step (not tested): *)
-      (**)        [ None               ;  Some []          ;  Some []             ; ]
-      (* Expected restricted typeclass: *)
-      [y;z]   "∈" [                      [      int ; int] ; [      int ; string] ; ]
-    ;
-
-    test restrict
-      (* New info: a variable assignment constraint: *)
-      x "=" C_map[m;n]
-      (* Initial typeclass constraint: *)
-      [x;y]   "∈" [[int  ; unit] ; [map(nat,nat)   ; int] ; [map(nat,string)   ; int] ; ]
-      (* Intermediate step (not tested): *)
-      (**)        [ None         ;  Some [nat;nat]        ;  Some [nat;string]        ; ]
-      (* Expected restricted typeclass constraint: *)
-      [m;n;y] "∈" [                [nat ; nat      ; int] ; [nat ; string      ; int] ; ]
-    ;
-
-    test restrict
-      (* New info: a variable assignment constraint: *)
-      y "=" C_nat[]
-      (* Initial typeclass constraint: *)
-      [x;y;z] "∈" [[int ; unit ; unit] ; [nat ; int ; int] ; [nat ; int ; string] ; ]
-      (* Intermediate step (not tested): *)
-      (**)        [       None         ;        Some []    ;        Some []       ; ]
-      (* Expected restricted typeclass: *)
-      [x;z]   "∈" [                      [nat ;       int] ; [nat ;       string] ; ]
-    ;    
-
-    ()
-
-  let test'
-      (deduce_and_clean : c_typeclass_simpl -> (c_constructor_simpl list * c_typeclass_simpl, _) result)
-      args (_in : string) tc
-      (expected_inferred  : (type_variable * constant_tag * type_variable list) list)
-      expected_args (_in : string) expected_tc =
-    let input_tc =  { reason_typeclass_simpl = "unit test" ; args ; tc } in
-    let expected_tc =  { reason_typeclass_simpl = "unit test" ; args = expected_args ; tc = expected_tc } in
-    let expected_inferred = List.map
-        (fun (tv , c_tag , tv_list) -> {reason_constr_simpl = "unit test" ; tv ; c_tag ; tv_list})
-        expected_inferred in
-    match deduce_and_clean input_tc with
-    | Error _ ->
-      assert false
-    | Stdlib.Ok ((actual_inferred , actual_tc), _) ->
-      assert (Ast_typed.Compare_generic.c_constructor_simpl_list actual_inferred expected_inferred = 0);
-      assert (Ast_typed.Compare_generic.c_typeclass_simpl actual_tc expected_tc = 0);
-      ()
-  let inferred v (_eq : string) c args = v, c, args
-  let tests2 deduce_and_clean =
-    test' deduce_and_clean
-      (* Input restricted typeclass: *)
-      [x;z]   "∈" [ [nat ; int] ; [nat ; string] ; ]
-      (* Expected inferred constraints: *)
-      [inferred x "=" C_nat[] ; ]
-      (* Expected cleaned typeclass: *)
-      [z]     "∈" [ [      int] ; [      string] ; ]
-    ;
-
-    test' deduce_and_clean
-      (* Input restricted typeclass: *)
-      [x;y;z] "∈" [ [nat ; int ; unit] ; [nat ; string ; unit] ; ]
-      (* Expected inferred constraints: *)
-      [inferred x "=" C_nat[] ;
-       inferred z "=" C_unit[] ; ]
-      (* Expected cleaned typeclass: *)
-      [z]     "∈" [ [      int       ] ; [      string       ] ; ]
-    ;
-
-    test' deduce_and_clean
-      (* Input restricted typeclass: *)
-      [x;z]   "∈" [ [map(nat,unit) ; int] ; [map(unit,nat) ; string] ; ]
-      (* Expected inferred constraints: *)
-      [inferred x "=" C_map[m;n] ; ] (* TODO: how to test this and not care about the actual m and n ? *)
-      (* Expected cleaned typeclass: *)
-      [m;n;z] "∈" [ [    nat;unit  ; int] ; [    unit;nat  ; string] ; ]
-    ;
-
-    ()
-
-  let () =
-    tests1 restrict ;
-    tests2 deduce_and_clean ;
-    ()
-end
-
 let get_or_add_refined_typeclass tc { refined_typeclasses; typeclasses_constrained_by }
   : (refined_typeclass * private_storage) =
   match PolyMap.find_opt tc refined_typeclasses with
     None ->
-    let rtc = make_refined_typeclass tc in
+    let rtc = make_refined_typeclass @@ typeclass_identifier_to_tc tc in
     let refined_typeclasses = PolyMap.add tc rtc refined_typeclasses in
     let aux' set = Some (Set.add tc (match set with Some set -> set | None -> Set.create ~cmp:compare_typeclass_identifier)) in
     let aux = (fun typeclasses_constrained_by tv ->
@@ -335,7 +224,7 @@ let get_or_add_refined_typeclass tc { refined_typeclasses; typeclasses_constrain
       List.fold_left
         aux
         typeclasses_constrained_by
-        tc.args in
+        (typeclass_identifier_to_tc tc).args in
     rtc, { refined_typeclasses; typeclasses_constrained_by }
   | Some rtc ->
     rtc, { refined_typeclasses; typeclasses_constrained_by }
@@ -348,7 +237,7 @@ let selector_by_ctor (private_storage : private_storage) (dbs : structured_dbs) 
     
     (* find a typeclass in refined_typeclasses which constrains c.tv *)
     let other_cs = Map.find c.tv private_storage.typeclasses_constrained_by in
-    let cs_pairs_refined = List.map (fun tc -> { tc = make_refined_typeclass tc ; c }) @@ Set.elements other_cs in
+    let cs_pairs_refined = List.map (fun tc -> { tc = make_refined_typeclass tc ; c }) @@ List.map typeclass_identifier_to_tc @@ Set.elements other_cs in
 
     private_storage, WasSelected (cs_pairs_db @ cs_pairs_refined)
 
