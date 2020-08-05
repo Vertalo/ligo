@@ -178,14 +178,14 @@ type input =
 type 'token logger = Markup.t list -> 'token -> unit
 
 type 'token instance = {
-  input    : input;
-  read     : log:('token logger) -> Lexing.lexbuf -> 'token;
-  buffer   : Lexing.lexbuf;
-  close    : unit -> unit;
-  get_win  : unit -> 'token window;
-  get_pos  : unit -> Pos.t;
-  get_last : unit -> Region.t;
-  get_file : unit -> file_path;
+  input        : input;
+  read         : log:('token logger) -> Lexing.lexbuf -> 'token;
+  buffer       : Lexing.lexbuf;
+  close        : unit -> unit;
+  get_win      : unit -> 'token window;
+  get_pos      : unit -> Pos.t;
+  get_last     : unit -> Region.t;
+  get_file     : unit -> file_path;
   get_comments : unit -> Markup.comment FQueue.t
 }
 
