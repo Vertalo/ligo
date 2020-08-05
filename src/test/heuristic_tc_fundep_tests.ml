@@ -3,9 +3,9 @@ open Main_errors
 
 module Core = Typesystem.Core
 open Ast_typed.Types
-open Typesystem.Solver_types
+(* open Typesystem.Solver_types *)
 open Trace
-open Typer_common.Errors
+(* open Typer_common.Errors *)
 module Map = RedBlackTrees.PolyMap
 module Set = RedBlackTrees.PolySet
 
@@ -36,7 +36,7 @@ let test''
   let expected =  { reason_typeclass_simpl = "unit test" ; args = expected_args ; tc = expected_tc } in
   (* TODO: use an error not an assert *)
   if Ast_typed.Compare_generic.c_typeclass_simpl (restrict info tc) expected = 0
-  then fail (??)
+  then let _ = assert false in ok()
   else ok ()
 
 let tests1 restrict = [
