@@ -128,7 +128,7 @@ module M = struct
   and compare_lz_t a b = compare_t (a ()) (b ())
   and compare_t (a : t) (b : t) =
     match (a, b) with
-    | (EmptyCtor, EmptyCtor)                         -> failwith "Should not happen (unless for ctors with no args?)"
+    | (EmptyCtor, EmptyCtor)                         -> 0 (* Two constructors with no args (I think?) *)
     | (Record (a, fa), Record (b, fb))               -> cmp2 String.compare a b (List.compare ~compare:compare_field) fa fb
     | (VariantConstructor (va, ca, xa), VariantConstructor (vb, cb, xb)) ->
        cmp3
