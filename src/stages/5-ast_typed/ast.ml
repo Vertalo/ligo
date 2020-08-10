@@ -321,6 +321,7 @@ and p_apply = {
     targ : type_value ;
 }
 and p_ctor_args = type_value list
+and p_ctor_args_list = p_ctor_args list
 and p_constant = {
     p_ctor_tag : constant_tag ;
     p_ctor_args : p_ctor_args ;

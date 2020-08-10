@@ -62,7 +62,7 @@ let splice f idx l =
 let splice_or_none f idx l =
   let rec splice_or_none acc f idx l =
     match l with
-      [] -> failwith "invalid index into list"
+      [] -> failwith "internal error: invalid index into list"
     | hd :: tl ->
       if idx = 0
       then (match f hd with
@@ -159,56 +159,80 @@ let all_equal cmp = function
   | hd :: tl -> if List.for_all (fun x -> cmp x hd = 0) tl then All_equal_to hd else Different
 
 let deduce_and_clean : c_typeclass_simpl -> (c_constructor_simpl list * c_typeclass_simpl, _) result = fun tcs ->
-  (* ex. [x;z] ∈ [ [map(nat,unit) ; int] ; [map(unit,nat) ; string] ] *)
-  let%bind tcs' = transpose tcs in
-  (* ex. [ x ? [ map(nat,unit) ; map(unit,nat) ; ] ;
-           z ? [ int           ; string        ; ] ; ] *)
-  let aux ((x : type_variable) , (tvl : type_value list)) =
-    let tags, argss = List.split @@ List.map
-        (fun (tv : type_value) ->
-           match tv.t with
-           | P_constant { p_ctor_tag; p_ctor_args } -> p_ctor_tag, p_ctor_args
-           | P_row { p_row_tag; p_row_args } -> ignore (p_row_tag, p_row_args); failwith "TODO: return p_row_tag, p_row_args similarly to P_constant"
-           | P_forall _ ->
-             (* In this case we would need to do specialization.
-                For now we just leave as-is and don't deduce anything *)
-             failwith "TODO"
-           | P_variable _ ->
-             (* In this case we  *)
-             failwith "TODO"
-           | P_apply _ ->
-             (* In this case we would need to do β-reduction, if
-                possible, or invoke another heuristic.
-                For now we just leave as-is and don't deduce anything *)
-             failwith "TODO"
-        )
-        tvl in
-    match all_equal Ast_typed.Compare_generic.constant_tag tags with
-    | Different -> ([x], [tvl], [])            (* Leave as-is, don't deduce anything *)
+  (* ex.   [ x                           ; z      ]
+       ∈ [ [ map3( nat   , unit  , unit  ) ; int    ] ;
+           [ map3( bytes , mutez , mutez ) ; string ] ] *)
+  let%bind possibilities_alist = transpose tcs in
+  (* ex. [ x ? [ map3( nat , unit , unit ) ; map3( bytes , mutez , mutez ) ; ] ;
+           z ? [ int                      ; string                       ; ] ; ] *)
+  let get_tag_and_args (tv : type_value) =
+    match tv.t with
+    | P_constant { p_ctor_tag; p_ctor_args } -> ok (p_ctor_tag, p_ctor_args)
+    | P_row { p_row_tag; p_row_args } -> ignore (p_row_tag, p_row_args); failwith "TODO: return p_row_tag, p_row_args similarly to P_constant"
+    | P_forall _ ->
+      (* In this case we would need to do specialization.
+         For now we just leave as-is and don't deduce anything *)
+      failwith "TODO"
+    | P_variable _ ->
+      (* In this case we  *)
+      failwith "TODO"
+    | P_apply _ ->
+      (* In this case we would need to do β-reduction, if
+         possible, or invoke another heuristic.
+         For now we just leave as-is and don't deduce anything *)
+      failwith "TODO"
+  in
+  let replace_var_and_possibilities ((x : type_variable) , (possibilities_for_x : type_value list)) =
+    let%bind tags_and_args = bind_map_list get_tag_and_args possibilities_for_x in
+    let tags_of_constructors, arguments_of_constructors = List.split @@ tags_and_args in
+    match all_equal Ast_typed.Compare_generic.constant_tag tags_of_constructors with
+    | Different ->
+      ok ( [ (x, possibilities_for_x) ], [] )            (* Leave as-is, don't deduce anything *)
     | Empty ->
       (* TODO: keep track of the constraints used to refine the
          typeclass so far. *)
+      (* fail @@ typeclass_error
+       *   "original expected by typeclass"
+       *   "actual partially guessed so far (needs a recursive substitution)" *)
       failwith "type error: the typeclass does not allow any type for \
-                this variable at this point"
+                the variable %a:PP_variable:x at this point"
     | All_equal_to c_tag ->
-      match argss with
-      | [] -> failwith "the typeclass does not allow any set of at this point"
-      | (hd_args :: _) as argss ->
-        let fresh_vars = List.map (fun _arg -> Var.fresh ~name:"todo" ()) hd_args in
+      match arguments_of_constructors with
+      | [] -> failwith "the typeclass does not allow any possibilities \
+                        for the variable %a:PP_variable:x at this point"
+      | (arguments_of_first_constructor :: _) as arguments_of_constructors ->
+        let fresh_vars = List.map (fun _arg -> Var.fresh_like x) arguments_of_first_constructor in
         let deduced : c_constructor_simpl = {
-          reason_constr_simpl = "inferred because it is the only remaining possibility at this point according to the typeclass [TODO]" ;
+          reason_constr_simpl = "inferred because it is the only remaining possibility at this point according to the typeclass [TODO:link to the typeclass here]" ;
           tv = x;
           c_tag ;
           tv_list = fresh_vars
         } in
-        (fresh_vars, argss, [deduced]) (* toss the identical tags, splice their arguments instead, and deduce the x = tag(?, …) constraint *)
+        (* discard the identical tags, splice their arguments instead, and deduce the x = tag(…) constraint *)
+        let sub_part_of_typeclass = {
+          reason_typeclass_simpl = Format.asprintf
+              "sub-part of a typeclass: expansion of the possible \
+               arguments for the constructor associated with %a"
+              Ast_typed.PP_generic.type_variable x;
+          args = fresh_vars ;
+          tc = arguments_of_constructors ;
+        } in
+        let%bind vars_and_possibilities = transpose sub_part_of_typeclass in
+        ok (vars_and_possibilities, [deduced])
   in
-  let l = List.map aux tcs' in
-  let (vars, tcs', deduced) = List.split3 @@ l in
-  let vars = List.flatten @@ vars in
-  let tcs' = List.flatten @@ tcs' in
+  let%bind l = bind_map_list replace_var_and_possibilities possibilities_alist in
+  let (vars_and_possibilities, deduced) = List.split @@ l in
+  (* vars_and_possibilities before flatten = [ [ fresh_x_1 ? [ nat  ; bytes ] ;
+                                                 fresh_x_2 ? [ unit ; mutez ] ;
+                                                 fresh_x_3 ? [ unit ; mutez ] ; ];
+                                               [ y         ? [ int ; string ]   ] ] *)
+  let vars_and_possibilities = List.flatten @@ vars_and_possibilities in
+  (* vars_and_possibilities after  flatten = [   fresh_x_1 ? [ nat  ; bytes  ] ;
+                                                 fresh_x_2 ? [ unit ; mutez  ] ;
+                                                 fresh_x_3 ? [ unit ; mutez  ] ;   
+                                                 y         ? [ int  ; string ]     ] *)
   let deduced = List.flatten @@ deduced in
-  let%bind tcs' = transpose_back tcs.reason_typeclass_simpl (List.combine vars tcs' (* TODO: is this correct? *)) in
+  let%bind tcs' = transpose_back tcs.reason_typeclass_simpl vars_and_possibilities in
   ok (deduced, tcs')
 
 let get_or_add_refined_typeclass tc { refined_typeclasses; typeclasses_constrained_by }

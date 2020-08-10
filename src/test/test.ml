@@ -9,7 +9,6 @@ let () =
     Spilling_tests.main ;
     Heuristic_tc_fundep_tests.main ;
     Typer_tests.main ;
-    Typer_tests.main ;
     Coase_tests.main ;
     Vote_tests.main ;
     Id_tests.main ;

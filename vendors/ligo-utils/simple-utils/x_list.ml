@@ -200,9 +200,8 @@ let rec compare ?compare:cmp a b =
   | _::_, [] -> 1
   | ha::ta, hb::tb ->
      (match cmp ha hb with
-        0 -> compare ta tb
+        0 -> compare ~compare:cmp ta tb
       | c -> c)
-
 
 module Ne = struct
 
