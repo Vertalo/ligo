@@ -1,12 +1,12 @@
 (* Lexer specification for LIGO, to be processed by [ocamllex]. *)
 
 {
+(* START HEADER *)
+
 [@@@warning "-42"]
 
 module Region = Simple_utils.Region
-module Pos = Simple_utils.Pos
-
-(* START HEADER *)
+module Pos    = Simple_utils.Pos
 
 (* TOKENS *)
 
@@ -648,5 +648,6 @@ let scan =
     else scan state lexbuf
 
 end (* of functor [Make] in HEADER *)
+
 (* END TRAILER *)
 }

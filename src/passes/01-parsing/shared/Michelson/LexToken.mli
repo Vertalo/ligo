@@ -22,6 +22,14 @@
 *)
 
 
+(* Dependencies *)
+
+module Region = Simple_utils.Region
+module Pos    = Simple_utils.Pos
+module Markup = Lexer_shared.Markup
+
+(* TOKENS *)
+
 type lexeme = string
 
 (* Annotations *)
@@ -76,19 +84,24 @@ type instruction =
 | ADDRESS          of Region.t
 | AMOUNT           of Region.t
 | AND              of Region.t
+| APPLY            of Region.t
 | BALANCE          of Region.t
 | BLAKE2B          of Region.t
+| CHAIN_ID         of Region.t
 | CAST             of Region.t
 | CHECK_SIGNATURE  of Region.t
 | COMPARE          of Region.t
 | CONCAT           of Region.t
 | CONS             of Region.t
 | CONTRACT         of Region.t
-| CREATE_ACCOUNT   of Region.t
 | CREATE_CONTRACT  of Region.t
-| IMPLICIT_ACCOUNT of Region.t
+| DIG              of Region.t
+| DIP              of Region.t
 | DROP             of Region.t
+| DUG              of Region.t
+| DUP              of Region.t
 | EDIV             of Region.t
+| EMPTY_BIG_MAP    of Region.t
 | EMPTY_MAP        of Region.t
 | EMPTY_SET        of Region.t
 | EQ               of Region.t
@@ -103,6 +116,7 @@ type instruction =
 | IF_LEFT          of Region.t
 | IF_NONE          of Region.t
 | IF_RIGHT         of Region.t
+| IMPLICIT_ACCOUNT of Region.t
 | INT              of Region.t
 | ISNAT            of Region.t
 | ITER             of Region.t
@@ -126,7 +140,7 @@ type instruction =
 | OR               of Region.t
 | PACK             of Region.t
 | PUSH             of Region.t
-| RENAME           of Region.t
+| RENAME           of Region.t (* ? *)
 | RIGHT            of Region.t
 | SELF             of Region.t
 | SENDER           of Region.t
@@ -137,7 +151,6 @@ type instruction =
 | SLICE            of Region.t
 | SOME             of Region.t
 | SOURCE           of Region.t
-| STEPS_TO_QUOTA   of Region.t
 | SUB              of Region.t
 | SWAP             of Region.t
 | TRANSFER_TOKENS  of Region.t
@@ -145,6 +158,8 @@ type instruction =
 | UNPACK           of Region.t
 | UPDATE           of Region.t
 | XOR              of Region.t
+
+type token = t
 
 val instr_to_lexeme : instruction -> lexeme
 
@@ -167,6 +182,7 @@ val instr_to_string :
 
 type macro =
   (* Constant macros *)
+
   ASSERT        of Region.t
 | ASSERT_CMPEQ  of Region.t
 | ASSERT_CMPGE  of Region.t
@@ -206,12 +222,10 @@ type macro =
 | IF_NONE       of Region.t
 | IF_SOME       of Region.t
 
-(* Non-constant macros *)
+  (* Non-constant macros *)
 
 | PAIR     of Pair.tree Region.reg
 | UNPAIR   of Pair.tree Region.reg
-| DIP      of (string * int) Region.reg  (* The lexeme and number of Is *)
-| DUP      of int Region.reg             (* The number of Us *)
 | CADR     of Pair.path Region.reg
 | SET_CADR of Pair.path Region.reg
 | MAP_CADR of Pair.path Region.reg
@@ -223,11 +237,12 @@ val macro_to_string :
 
 (* Types *)
 
-type type_ =
+type m_type =
   T_address   of Region.t  (* "address"   *)
 | T_big_map   of Region.t  (* "big_map"   *)
 | T_bool      of Region.t  (* "bool"      *)
 | T_bytes     of Region.t  (* "bytes"     *)
+| T_chain_id  of Region.t  (* "chain_id"  *)
 | T_contract  of Region.t  (* "contract"  *)
 | T_int       of Region.t  (* "int"       *)
 | T_key       of Region.t  (* "key"       *)
@@ -247,10 +262,10 @@ type type_ =
 | T_timestamp of Region.t  (* "timestamp" *)
 | T_unit      of Region.t  (* "unit"      *)
 
-val type_to_lexeme : type_ -> lexeme
+val type_to_lexeme : m_type -> lexeme
 
 val type_to_string :
-  type_ -> ?offsets:bool -> [`Byte | `Point] -> string
+  m_type -> ?offsets:bool -> [`Byte | `Point] -> string
 
 
 (* TOKENS *)
@@ -263,7 +278,7 @@ type t =
 | Data    of data
 | Instr   of instruction
 | Macro   of macro
-| Type    of type_
+| Type    of m_type
 | Annot   of annotation
 | SEMI    of Region.t
 | LPAREN  of Region.t
@@ -310,10 +325,22 @@ val eof       : Region.t -> token
 
 (* Predicates *)
 
-val is_string : token -> bool
-val is_bytes  : token -> bool
-val is_int    : token -> bool
-val is_ident  : token -> bool
-val is_annot  : token -> bool
-val is_sym    : token -> bool
 val is_eof    : token -> bool
+
+(* Style *)
+
+type error
+
+val error_to_string : error -> string
+
+exception Error of error Region.reg
+
+val format_error :
+  ?offsets:bool -> [`Byte | `Point] ->
+  error Region.reg -> file:bool -> string Region.reg
+
+val check_right_context :
+  token ->
+  (Lexing.lexbuf -> (Markup.t list * token) option) ->
+  Lexing.lexbuf ->
+  unit

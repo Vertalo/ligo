@@ -550,7 +550,7 @@ let macro_map = mk_map (fun f -> macro_to_lexeme (f Region.ghost)) macro_list
 
 (* TYPES *)
 
-type type_ =
+type m_type =
   T_address   of Region.t  (* "address"   *)
 | T_big_map   of Region.t  (* "big_map"   *)
 | T_bool      of Region.t  (* "bool"      *)
@@ -676,7 +676,7 @@ type t =
 | Data    of data
 | Instr   of instruction
 | Macro   of macro
-| Type    of type_
+| Type    of m_type
 | Annot   of annotation
 | SEMI    of Region.t
 | LPAREN  of Region.t
