@@ -331,6 +331,26 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_TEST_SET_SOURCE , [ V_Ct (C_address addr) ] ) ->
       let>> () = Set_source addr in
       return_ct C_unit
+    | ( C_TEST_EXTERNAL_CALL , [ V_Ct (C_address addr) ; param ; V_Ct (C_mutez amt) ] ) ->
+      let>> (code,storage) = External_call (addr, amt) in
+      let* result = match code with
+        | V_Func_val {arg_binder ; body ; env} ->
+          let param_storage = V_Record (LMap.of_list [ (Label "0", param) ; (Label "1", storage) ]) in
+          let f_env' = Env.extend env (arg_binder, param_storage) in
+          eval_ligo body f_env'
+        | _ -> failwith "code is not a function" in
+      ( match result with
+          | V_Failure _ -> return result (*TODO: ligo error here ? *)
+          | V_Record v ->
+            let ops = LMap.find (Label "0") v in
+            let new_st = LMap.find (Label "1") v in
+            let>> () = Update_storage (addr, new_st) in
+            return ops
+          | _ -> failwith "ll"
+      )
+    | ( C_TEST_GET_STORAGE , [ V_Ct (C_address addr) ] ) ->
+      let>> storage = Get_storage addr in
+      return storage
     | _ ->
       let () = Format.printf "%a\n" Ast_typed.PP.constant c in
       let () = List.iter ( fun e -> Format.printf "%s\n" (Ligo_interpreter.PP.pp_value e)) operands in
@@ -502,22 +522,23 @@ open Proto_alpha_utils.Memory_proto_alpha
 let eval : ?options:options -> Ast_typed.program -> (string , _) result =
   fun ?(options = default_options) prg ->
   let init_ctxt = Ligo_interpreter.Mini_proto.option_to_context options in
-  let aux  (pp,top_env) el =
+  let aux (pp,top_env,ctxt) el =
     match Location.unwrap el with
     | Ast_typed.Declaration_constant {binder; expr ; inline=_ ; _} ->
-       let%bind (v,_ctxt) =
+       let%bind (v,ctxt) =
          (*TODO This TRY-CATCH is here until we properly implement effects*)
          try
-           Monad.eval (eval_ligo expr top_env) init_ctxt None
+           Monad.eval (eval_ligo expr top_env) ctxt None
          with Temporary_hack s ->
-           ok (V_Failure s, init_ctxt)
+           ok (V_Failure s, ctxt)
               (*TODO This TRY-CATCH is here until we properly implement effects*)
        in
       let pp' = pp^"\n val "^(Var.to_name binder.wrap_content)^" = "^(Ligo_interpreter.PP.pp_value v) in
       let top_env' = Env.extend top_env (binder, v) in
-      ok @@ (pp',top_env')
+      ok (pp',top_env',ctxt)
     | Ast_typed.Declaration_type _ ->
-      ok (pp , top_env)
+      ok (pp , top_env, ctxt)
   in
-  let%bind (res,_) = bind_fold_list aux ("",Env.empty_env) prg in
+  let%bind (res,_,ctxt) = bind_fold_list aux ("",Env.empty_env,init_ctxt) prg in
+  let res = res ^ "\n" ^ Ligo_interpreter.PP.pp_context ctxt in
   ok @@ res

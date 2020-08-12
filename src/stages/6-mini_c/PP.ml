@@ -265,10 +265,12 @@ and constant ppf : constant' -> unit = function
   | C_CONVERT_TO_LEFT_COMB  -> fprintf ppf "CONVERT_TO_LEFT_COMB"
   | C_CONVERT_FROM_RIGHT_COMB -> fprintf ppf "CONVERT_FROM_RIGHT_COMB"
   | C_CONVERT_FROM_LEFT_COMB  -> fprintf ppf "CONVERT_FROM_LEFT_COMB"
-  | C_TEST_INJECT_SCRIPT -> fprintf ppf "C_INJECT_SCRIPT"
-  | C_TEST_SET_NOW -> fprintf ppf "SET_NOW"
-  | C_TEST_SET_SOURCE -> fprintf ppf "SET_SOURCE"
-  | C_TEST_SET_BALANCE -> fprintf ppf "SET_BALANCE"
+  | C_TEST_INJECT_SCRIPT -> fprintf ppf "TEST_INJECT_SCRIPT"
+  | C_TEST_SET_NOW -> fprintf ppf "TEST_SET_NOW"
+  | C_TEST_SET_SOURCE -> fprintf ppf "TEST_SET_SOURCE"
+  | C_TEST_SET_BALANCE -> fprintf ppf "TEST_SET_BALANCE"
+  | C_TEST_EXTERNAL_CALL -> fprintf ppf "TEST_EXTERNAL_CALL"
+  | C_TEST_GET_STORAGE -> fprintf ppf "TEST_GET_STORAGE"
 
 let%expect_test _ =
   Format.printf "%a" value (D_bytes (Bytes.of_string "foo")) ;

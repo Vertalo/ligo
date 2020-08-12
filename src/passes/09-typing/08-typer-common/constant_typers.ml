@@ -666,6 +666,15 @@ let test_set_balance = typer_2 "TEST_SET_BALANCE" @@ fun addr b ->
   let%bind () = assert_eq b (t_mutez ()) in
   ok (t_unit ())
 
+let test_external_call = typer_3 "TEST_EXTERNAL_CALL" @@ fun addr _p amt  ->
+  let%bind () = assert_eq addr (t_address ()) in
+  let%bind () = assert_eq amt (t_mutez ()) in
+  ok (t_list (t_operation ()))
+
+let test_get_storage = typer_1_opt "TEST_GET_STORAGE" @@ fun addr opt ->
+  let%bind () = assert_eq addr (t_address ()) in
+  let%bind storage_t = trace_option not_annotated opt in
+  ok storage_t
 
 let constant_typers c loc : (typer , typer_error) result = match c with
   | C_INT                 -> ok @@ int ;
@@ -767,4 +776,6 @@ let constant_typers c loc : (typer , typer_error) result = match c with
   | C_TEST_SET_NOW -> ok @@ test_set_now ;
   | C_TEST_SET_SOURCE -> ok @@ test_set_source ;
   | C_TEST_SET_BALANCE -> ok @@ test_set_balance ;
+  | C_TEST_EXTERNAL_CALL -> ok @@ test_external_call ;
+  | C_TEST_GET_STORAGE -> ok @@ test_get_storage ;
   | _ as cst -> fail (corner_case @@ Format.asprintf "typer not implemented for constant %a" PP.constant cst)

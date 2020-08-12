@@ -31,6 +31,26 @@ let rec pp_value : value -> string = function
   | V_Set slist ->
     Format.asprintf "{%s}" @@
       List.fold_left (fun prev v -> Format.asprintf "%s ; %s" prev (pp_value v)) "" slist
+    
+let pp_context : Mini_proto.t -> string = fun { contracts ; step_constants } ->
+  let open Mini_proto in
+  let {source;payer;self;amount;balance;now} = step_constants in
+  ignore source ;
+  ignore payer ;
+  ignore self ;
+  ignore amount ;
+  ignore balance ;
+  ignore now ;
+  let ct = Mini_proto.StateMap.to_kv_list contracts in
+  let ct = List.map
+    (fun (Address addr, {script = { code ; storage } ; script_balance }) ->
+      Format.asprintf "%s ->\n code : %s \n storage : %s\n script_balance %a\n "
+        addr
+        (pp_value code)
+        (pp_value storage)
+        Tez.pp script_balance
+    ) ct in
+  String.concat "--\n" ("Contracts:\n"::ct)
 
 let pp_env : env -> unit = fun env ->
   let () = Format.printf "{ #elements : %i\n" @@ Env.cardinal env in

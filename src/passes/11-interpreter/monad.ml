@@ -16,6 +16,9 @@ module Command = struct
   type 'a t =
     | Fail_overflow : Location.t -> 'a t
     | Fail_reject : Location.t * LT.value -> 'a t
+    | External_call : string * LT.Tez.t -> (LT.value * LT.value) t
+    | Update_storage : string * LT.value -> unit t
+    | Get_storage : string -> LT.value t
     | Inject_script : string * LT.value * LT.value -> unit t
     | Set_now : Z.t -> unit t
     | Set_source : string -> unit t
@@ -28,6 +31,7 @@ module Command = struct
     | Source : string t
     | Serialize_pack_data : 'a -> 'a t
     | Serialize_unpack_data : 'a -> 'a t
+    | Lift_tz_result : 'a Memory_proto_alpha.Alpha_environment.Error_monad.tzresult -> 'a t
     | Tez_compare_wrapped : LT.Tez.t * LT.Tez.t -> int t
     | Int_compare_wrapped : 'a Int_repr.num * 'a Int_repr.num -> int t
     | Int_compare : 'a Int_repr.num * 'a Int_repr.num -> int t
@@ -37,7 +41,6 @@ module Command = struct
     | Int_of_int64 : int64 -> Int_repr.z Int_repr.num t
     | Int_to_int64 : _ Int_repr.num -> int64 option t
     | Int_is_nat : Int_repr.z Int_repr.num -> Int_repr.n Int_repr.num option t
-    | Lift_tz_result : 'a Memory_proto_alpha.Alpha_environment.Error_monad.tzresult -> 'a t
     | Int_neg : _ Int_repr.num -> Int_repr.z Int_repr.num t
     | Int_add : _ Int_repr.num * _ Int_repr.num -> Int_repr.z Int_repr.num t
     | Int_add_n : Int_repr.n Int_repr.num * Int_repr.n Int_repr.num -> Int_repr.n Int_repr.num t
@@ -75,11 +78,40 @@ module Command = struct
       fail (`Ligo_interpret_overflow location)
     | Fail_reject (location, e) ->
       fail (`Ligo_interpret_reject (location,e))
+    | External_call (addr, amt) ->
+      let aux : Mini_proto.state option -> Mini_proto.state option = fun state_opt ->
+        match state_opt with
+        | Some state ->
+          let script_balance =
+            Proto_alpha_utils.Trace.trace_alpha_tzresult (fun _ -> `TODO) @@
+            LT.Tez.(state.script_balance +? amt) in
+          let script_balance = match script_balance with Ok (x,_) -> x | Error _ -> failwith "TODO" in
+          Some { state with script_balance }
+        | None -> failwith "EXTERNAL CALL DESTINATION UNKNOWN" (* TODO *)
+      in
+      let contracts = Mini_proto.StateMap.update (Address addr) aux ctxt.contracts in
+      let contract = Mini_proto.StateMap.find (Address addr) contracts in
+      let step_constants = { ctxt.step_constants with payer = ctxt.step_constants.source ; balance = contract.script_balance} in
+      let ctxt : Mini_proto.t = { contracts ; step_constants } in
+      ok ( (contract.script.code, contract.script.storage), ctxt)
+    | Update_storage (addr, storage) ->
+      let aux : Mini_proto.state option -> Mini_proto.state option = fun state_opt ->
+        match state_opt with
+        | Some state ->
+          let script = { state.script with storage } in
+          Some { state with script }
+        | None -> failwith "ADDR NOT REGISTERED" (* TODO *)
+      in
+      let contracts = Mini_proto.StateMap.update (Address addr) aux ctxt.contracts in
+      ok ((), {ctxt with contracts})
+    | Get_storage addr ->
+      let storage = Mini_proto.StateMap.find (Address addr) ctxt.contracts in
+      ok (storage.script.storage, ctxt)
     | Inject_script (addr, code, storage) ->
       let script : Mini_proto.script = { code ; storage } in
-      let state : Mini_proto.state = {script ; script_balance = Alpha_context.Tez.zero } in
-      let state = Mini_proto.StateMap.add (Address addr) state ctxt.state in
-      ok ((), { ctxt with state} )
+      let contracts : Mini_proto.state = {script ; script_balance = Alpha_context.Tez.zero } in
+      let contracts = Mini_proto.StateMap.add (Address addr) contracts ctxt.contracts in
+      ok ((), { ctxt with contracts})
     | Set_now now ->
       let now = Alpha_context.Script_timestamp.of_zint now in
       ok ((), { ctxt with step_constants = { ctxt.step_constants with now } })
@@ -89,13 +121,13 @@ module Command = struct
         Alpha_context.Contract.of_b58check source in
       ok ((), { ctxt with step_constants = { ctxt.step_constants with source } })
     | Set_balance (addr, amt) ->
-      let aux : Mini_proto.state option -> Mini_proto.state option = fun state_opt ->
-        match state_opt with
-        | Some state -> Some { state with script_balance = amt }
+      let aux : Mini_proto.state option -> Mini_proto.state option = fun contracts_opt ->
+        match contracts_opt with
+        | Some contracts -> Some { contracts with script_balance = amt }
         | None -> None
       in
-      let state = Mini_proto.StateMap.update (Address addr) aux ctxt.state in
-      ok ((), {ctxt with state})
+      let contracts = Mini_proto.StateMap.update (Address addr) aux ctxt.contracts in
+      ok ((), {ctxt with contracts})
     | Now -> ok (LT.Timestamp.to_zint ctxt.step_constants.now, ctxt)
     | Amount -> ok (ctxt.step_constants.amount, ctxt)
     | Balance -> ok (ctxt.step_constants.balance, ctxt)

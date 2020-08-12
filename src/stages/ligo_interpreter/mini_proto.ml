@@ -26,13 +26,13 @@ type step_constants = {
   }
 
 type t = {
-    state : state_map ;
+    contracts : state_map ;
     step_constants : step_constants ;
   }
 
 let option_to_context : Proto_alpha_utils.Memory_proto_alpha.options -> t =
   fun {tezos_context=_TODO;source;payer;self;amount;chain_id=_;balance;now} ->
     {
-      state = StateMap.empty ;
+      contracts = StateMap.empty ;
       step_constants = { source ; payer ; self ; amount ; balance ; now }
     }
