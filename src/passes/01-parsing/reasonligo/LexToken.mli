@@ -24,7 +24,6 @@
 (* Dependencies *)
 
 module Region = Simple_utils.Region
-module Pos    = Simple_utils.Pos
 module Markup = Lexer_shared.Markup
 
 (* TOKENS *)

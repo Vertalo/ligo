@@ -2,13 +2,14 @@ $HOME/git/OCaml-build/Makefile
 
 ../shared/Lexer.mli
 ../shared/Lexer.mll
+../shared/LexerLib.mli
 ../shared/LexerLib.ml
-../shared/EvalOpt.ml
 ../shared/EvalOpt.mli
+../shared/EvalOpt.ml
 ../shared/LexerLog.mli
 ../shared/LexerLog.ml
-../shared/Markup.ml
 ../shared/Markup.mli
+../shared/Markup.ml
 ../shared/ParserAPI.mli
 ../shared/ParserAPI.ml
 ../shared/LexerUnit.mli
