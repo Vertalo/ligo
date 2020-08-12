@@ -25,7 +25,6 @@
 (* Dependencies *)
 
 module Region = Simple_utils.Region
-module Pos    = Simple_utils.Pos
 module Markup = Lexer_shared.Markup
 
 (* TOKENS *)
@@ -140,7 +139,7 @@ type instruction =
 | OR               of Region.t
 | PACK             of Region.t
 | PUSH             of Region.t
-| RENAME           of Region.t (* ? *)
+| RENAME           of Region.t
 | RIGHT            of Region.t
 | SELF             of Region.t
 | SENDER           of Region.t
@@ -158,8 +157,6 @@ type instruction =
 | UNPACK           of Region.t
 | UPDATE           of Region.t
 | XOR              of Region.t
-
-type token = t
 
 val instr_to_lexeme : instruction -> lexeme
 

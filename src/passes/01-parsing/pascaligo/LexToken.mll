@@ -6,7 +6,6 @@
 (* Dependencies *)
 
 module Region = Simple_utils.Region
-module Pos    = Simple_utils.Pos
 module Markup = Lexer_shared.Markup
 module SMap   = Map.Make (String)
 module SSet   = Set.Make (String)
@@ -608,7 +607,8 @@ let check_right_context token next_token buffer : unit =
                  else ()
             else
               if   is_string token
-              then if   is_int next || is_bytes next || is_ident next
+              then if   is_string next || is_int next
+                        || is_bytes next || is_ident next
                    then fail region Missing_break
                    else ()
               else

@@ -132,49 +132,49 @@ module Make (Token : TOKEN) : (S with module Token = Token) =
 
     let error_to_string = function
       Invalid_utf8_sequence ->
-        "Invalid UTF-8 sequence.\n"
+        "Invalid UTF-8 sequence."
     | Unexpected_character c ->
-        sprintf "Unexpected character '%c'.\n" c
+        sprintf "Unexpected character '%c'." c
     | Undefined_escape_sequence ->
         "Undefined escape sequence.\n\
-         Hint: Remove or replace the sequence.\n"
+         Hint: Remove or replace the sequence."
     | Missing_break ->
         "Missing break.\n\
-         Hint: Insert some space.\n"
+         Hint: Insert some space."
     | Unterminated_string ->
         "Unterminated string.\n\
-         Hint: Close with double quotes.\n"
+         Hint: Close with double quotes."
     | Unterminated_integer ->
         "Unterminated integer.\n\
-         Hint: Remove the sign or proceed with a natural number.\n"
+         Hint: Remove the sign or proceed with a natural number."
     | Odd_lengthed_bytes ->
         "The length of the byte sequence is an odd number.\n\
-         Hint: Add or remove a digit.\n"
+         Hint: Add or remove a digit."
     | Unterminated_comment ->
         "Unterminated comment.\n\
-         Hint: Close with \"*/\".\n"
+         Hint: Close with \"*/\"."
     | Annotation_length max ->
-        sprintf "Annotation length exceeds the built-in limit %d.\n" max
+        sprintf "Annotation length exceeds the built-in limit %d." max
     | Orphan_minus ->
         "Orphan minus sign.\n\
-         Hint: Remove the trailing space.\n"
+         Hint: Remove the trailing space."
     | Non_canonical_zero ->
         "Non-canonical zero.\n\
-         Hint: Use 0.\n"
+         Hint: Use 0."
     | Negative_byte_sequence ->
         "Negative byte sequence.\n\
-         Hint: Remove the leading minus sign.\n"
+         Hint: Remove the leading minus sign."
     | Broken_string ->
         "The string starting here is interrupted by a line break.\n\
-         Hint: Remove the break or close the string before.\n"
+         Hint: Remove the break or close the string before."
     | Invalid_character_in_string ->
         "Invalid character in string.\n\
-         Hint: Remove or replace the character.\n"
+         Hint: Remove or replace the character."
     | Invalid_Roman_numeral ->
         "Invalid or out-of-range Roman numeral (from 1 to 999).\n\
-         (Numerus pravus/nimius.)\n"
+         (Numerus pravus/nimius.)"
     | Invalid_identifier ->    (* TODO: Shortest edit distance? *)
-        "Invalid identifier.\n"
+        "Invalid identifier."
     | Invalid_tree (char, tree) ->
         let opposite = if char = 'I' then 'A' else 'I' in
         sprintf "\
@@ -216,8 +216,6 @@ module Make (Token : TOKEN) : (S with module Token = Token) =
           (sprintf "\nLean your head to the left and consider \
                     the tree so far:\n%s" Pair.(to_string tree))
 
-    | _ -> assert false
-
     exception Error of error Region.reg
 
     let format_error ?(offsets=true) mode Region.{region; value} ~file =
@@ -252,22 +250,13 @@ module Make (Token : TOKEN) : (S with module Token = Token) =
       | Error Token.Non_canonical_zero ->
           fail region Non_canonical_zero
 
-    let mk_nat state buffer =
-      let region, lexeme, state = state#sync buffer in
-      match Token.mk_nat lexeme region with
-        Ok token -> state#enqueue token
-      | Error Token.Non_canonical_zero_nat ->
-          fail region Non_canonical_zero
-      | Error Token.Invalid_natural ->
-          fail region Invalid_natural
-
     let mk_ident state buffer =
       let mk_region index start =
         let start = start#shift_bytes index in
         let stop  = start#shift_bytes 1
         in Region.make ~start ~stop
-      and start = state.pos in
-      let region, lexeme, state = state#sync state buffer in
+      and start = state#pos in
+      let region, lexeme, state = state#sync buffer in
       match Token.mk_ident lexeme region with
         Ok token -> state#enqueue token
       | Error Token.Valid_prefix (index, tree) ->
@@ -292,15 +281,16 @@ module Make (Token : TOKEN) : (S with module Token = Token) =
           in fail region Missing_break
 
     let mk_annot state buffer =
-      let region, lexeme, state = state#sync state buffer
+      let region, lexeme, state = state#sync buffer
       in match Token.mk_annot lexeme region with
            Ok token -> state#enqueue token
          | Error Token.Annotation_length max ->
              fail region (Annotation_length max)
 
     let mk_sym state buffer =
-      let region, lexeme, state = state#sync state buffer
-      in Token.mk_sym lexeme region, state
+      let region, lexeme, state = state#sync buffer in
+      let token = Token.mk_sym lexeme region
+      in state#enqueue token
 
     let mk_eof state buffer =
       let region, _, state = state#sync buffer in
@@ -320,13 +310,14 @@ module Make (Token : TOKEN) : (S with module Token = Token) =
 
 let utf8_bom   = "\xEF\xBB\xBF" (* Byte Order Mark for UTF-8 *)
 let nl         = ['\n' '\r'] | "\r\n"
+let blank      = ' ' | '\t'
 let digit      = ['0'-'9']
 let natural    = digit | digit (digit | '_')* digit
 let small      = ['a'-'z']
 let capital    = ['A'-'Z']
 let integer    = '-'? natural
 let letter     = ['a'-'z' 'A'-'Z']
-let ident      = small (letter | '_' | digit)*
+let ident      = letter (letter | '_' | digit)*
 let hexa_digit = digit | ['A'-'F']
 let byte       = hexa_digit hexa_digit
 let byte_seq   = byte | byte (byte | '_')* byte
@@ -337,6 +328,10 @@ let symbol     = ';' | '(' | ')' | '{' | '}'
 let annotation =
   (':'|'@'|'%')
   ('@'|'%'|"%%"| ('_' | letter) ('_' | letter | digit | '.')*)?
+
+(* #include files *)
+
+let string = [^'"' '\\' '\n']*  (* For strings of #include *)
 
 (* RULES *)
 
@@ -356,7 +351,6 @@ and scan state = parse
   nl         { scan (state#push_newline lexbuf) lexbuf }
 | ' '+       { scan (state#push_space   lexbuf) lexbuf }
 | '\t'+      { scan (state#push_tabs    lexbuf) lexbuf }
-
 | ident      { mk_ident     state lexbuf }
 | bytes      { mk_bytes seq state lexbuf }
 | integer    { mk_int       state lexbuf }
@@ -372,68 +366,61 @@ and scan state = parse
 
 (* Block comments *)
 
-| "/*" { let opening, _, state = state#sync lexbuf in
-         let thread            = LexerLib.mk_thread opening in
-         let thread            = thread#push_string lexeme in
-         let thread, state     = scan_block thread state lexbuf
+| "/*" { let opening, lexeme, state = state#sync lexbuf in
+         let thread                 = LexerLib.mk_thread opening in
+         let thread                 = thread#push_string lexeme in
+         let thread, state          = scan_block thread state lexbuf
          in scan (state#push_block thread) lexbuf }
 
 (* Line comments *)
 
-| '#'  { let opening, _, state = state#sync lexbuf in
-         let thread            = LexerLib.mk_thread opening in
-         let thread            = thread#push_string lexeme in
-         let thread, state     = scan_line thread state lexbuf
+| '#'  { let opening, lexeme, state = state#sync lexbuf in
+         let thread                 = LexerLib.mk_thread opening in
+         let thread                 = thread#push_string lexeme in
+         let thread, state          = scan_line thread state lexbuf
          in scan (state#push_line thread) lexbuf }
 
-(*
-  (* Some special errors
+(* #include preprocessing directives *)
 
-     Some special errors are recognised in the semantic actions of the
-     following regular expressions. The first error is a minus sign
-     separated from the integer it modifies by some markup (space or
-     tabs). The second is a minus sign immediately followed by
-     anything else than a natural number (matched above) or markup and
-     a number (previous error). The third is the strange occurrence of
-     an attempt at defining a negative byte sequence. Finally, the
-     catch-all rule reports unexpected characters in the buffer (and
-     is not so special, after all).
-  *)
+| '#' blank* (natural as line) blank+ '"' (string as file) '"' {
+    let  _, _, state = state#sync lexbuf in
+    let flags, state = scan_flags state [] lexbuf in
+    let           () = ignore flags in
+    let line         = int_of_string line
+    and file         = Filename.basename file in
+    let pos          = state#pos#set ~file ~line ~offset:0 in
+    let state        = state#set_pos pos in
+    scan state lexbuf }
 
-| '-' { let region, _, state = state#sync lexbuf in
-        let state = scan state lexbuf in
-        let open Markup in
-        match FQueue.peek state.units with
-          None -> assert false
-        | Some (_, ((Space _ | Tabs _)::_, token))
-            when Token.is_int token ->
-              fail region Orphan_minus
-        | _ -> fail region Unterminated_integer }
+(* Scanning #include flag *)
 
-| '-' "0x" byte_seq?
-      { let region, _, _ = sync state lexbuf
-        in fail region Negative_byte_sequence }
-
-| _ as c { let region, _, _ = sync state lexbuf
-           in fail region (Unexpected_character c) }
- *)
+and scan_flags state acc = parse
+  blank+          { let _, _, state = state#sync lexbuf
+                    in scan_flags state acc lexbuf          }
+| natural as code { let _, _, state = state#sync lexbuf in
+                    let acc = int_of_string code :: acc
+                    in scan_flags state acc lexbuf          }
+| nl              { List.rev acc, state#push_newline lexbuf }
+| eof             { let _, _, state = state#sync lexbuf
+                    in List.rev acc, state                  }
 
 (* Finishing a string *)
 
 and scan_string thread state = parse
-  nl         { fail thread#opening Broken_string }
-| eof        { fail thread#opening Unterminated_string }
+  nl     { fail thread#opening Broken_string }
+| eof    { fail thread#opening Unterminated_string }
 | ['\t' '\r' '\b']
-             { let region, _, _ = sync state lexbuf
-               in fail region Invalid_character_in_string }
-| '"'        { let _, _, state = sync state lexbuf
-               in push_char '"' thread, state }
-| esc        { let _, lexeme, state = sync state lexbuf
-               in scan_string (push_string lexeme thread) state lexbuf }
-| '\\' _     { let region, _, _ = sync state lexbuf
-               in fail region Undefined_escape_sequence }
-| _ as c     { let _, _, state = sync state lexbuf in
-               scan_string (push_char c thread) state lexbuf }
+         { let region, _, _ = state#sync lexbuf
+           in fail region Invalid_character_in_string }
+| '"'    { let _, _, state = state#sync lexbuf
+           in thread, state }
+| esc    { let _, lexeme, state = state#sync lexbuf in
+           let thread = thread#push_string lexeme
+           in scan_string thread state lexbuf }
+| '\\' _ { let region, _, _ = state#sync lexbuf
+           in fail region Undefined_escape_sequence }
+| _ as c { let _, _, state = state#sync lexbuf in
+           scan_string (thread#push_char c) state lexbuf }
 
 (* Finishing a block comment
 
@@ -465,7 +452,7 @@ and scan_block thread state = parse
                let thread,
                    status = scan_utf8 thread state lexbuf in
                let delta  = thread#length - len in
-               let pos    = state.pos#shift_one_uchar delta in
+               let pos    = state#pos#shift_one_uchar delta in
                match status with
                  Stdlib.Ok () ->
                    scan_block thread (state#set_pos pos) lexbuf
@@ -521,7 +508,8 @@ and scan_utf8_inline thread state = parse
 {
 (* START TRAILER *)
 
-let scan =
+let scan :
+  token LexerLib.state -> Lexing.lexbuf -> token LexerLib.state =
   let first_call = ref true in
   fun state lexbuf ->
     if   !first_call

@@ -4,3 +4,11 @@ $HOME/git/OCaml-build/Makefile
 ../EvalOpt.ml
 ../Markup.mli
 ../Markup.ml
+../LexerLib.mli
+../LexerLib.ml
+../LexerUnit.mli
+../LexerUnit.ml
+../LexerLog.mli
+../LexerLog.ml
+
+./Stubs/Lexer_shared.ml

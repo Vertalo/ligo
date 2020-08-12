@@ -1,17 +1,29 @@
-(* Pilot for the lexer of Michelson *)
+(* Driver for the Michelson lexer *)
 
-open! EvalOpt (* Reads the command-line options: Effectful! *)
+(* Dependencies *)
 
-(* Error printing and exception tracing *)
+module Region    = Simple_utils.Region
+module EvalOpt   = Lexer_shared.EvalOpt
+module Lexer     = Lexer_shared.Lexer
+module LexerUnit = Lexer_shared.LexerUnit
 
-let () = Printexc.record_backtrace true
+(* Input/Output *)
 
-let external_ text =
-  Utils.highlight (Printf.sprintf "External error: %s" text); exit 1;;
+module IO =
+  struct
+    let options =
+      let open EvalOpt in
+      let block = mk_block ~opening:"/*" ~closing:"*/"
+      in read ~block ~line:"#" ".tz"
+  end
 
-(* Running the lexer on the input file *)
+(* Instantiating the standalone lexer *)
 
-module Lexer = Lexer.Make (LexToken)
+module M = LexerUnit.Make (IO) (Lexer.Make (LexToken))
 
-let () = Lexer.trace ~offsets:EvalOpt.offsets
-                     EvalOpt.mode EvalOpt.input EvalOpt.cmd
+(* Tracing all tokens in the source *)
+
+let () =
+  match M.trace () with
+    Stdlib.Ok () -> ()
+  | Error Region.{value; _} -> Printf.eprintf "\027[31m%s\027[0m%!" value

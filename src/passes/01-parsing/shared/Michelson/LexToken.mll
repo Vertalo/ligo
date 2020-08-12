@@ -4,22 +4,23 @@
 {
 (* START HEADER *)
 
-(* Shorthands *)
+(* Dependencies *)
 
-type lexeme = string
+module Region = Simple_utils.Region
+module Markup = Lexer_shared.Markup
+module SMap   = Map.Make (String)
+
+(* Shorhands *)
 
 let sprintf = Printf.sprintf
 
-module SMap  = Utils.String.Map
+(* Printing a string in red to standard error *)
 
-(* Hack to roll back one lexeme in the current semantic action *)
+let highlight msg = Printf.eprintf "\027[31m%s\027[0m%!" msg
 
-let rollback buffer =
-  let open Lexing in
-  let len = String.length (lexeme buffer) in
-  let pos_cnum = buffer.lex_curr_p.pos_cnum - len in
-  buffer.lex_curr_pos <- buffer.lex_curr_pos - len;
-  buffer.lex_curr_p <- {buffer.lex_curr_p with pos_cnum}
+(* TOKENS *)
+
+type lexeme = string
 
 let max_annot_length = 255 (* Maximum lengths of annotations *)
 
@@ -150,19 +151,24 @@ type instruction =
 | ADDRESS          of Region.t
 | AMOUNT           of Region.t
 | AND              of Region.t
+| APPLY            of Region.t
 | BALANCE          of Region.t
 | BLAKE2B          of Region.t
+| CHAIN_ID         of Region.t
 | CAST             of Region.t
 | CHECK_SIGNATURE  of Region.t
 | COMPARE          of Region.t
 | CONCAT           of Region.t
 | CONS             of Region.t
 | CONTRACT         of Region.t
-| CREATE_ACCOUNT   of Region.t
 | CREATE_CONTRACT  of Region.t
-| IMPLICIT_ACCOUNT of Region.t
+| DIG              of Region.t
+| DIP              of Region.t
 | DROP             of Region.t
+| DUG              of Region.t
+| DUP              of Region.t
 | EDIV             of Region.t
+| EMPTY_BIG_MAP    of Region.t
 | EMPTY_MAP        of Region.t
 | EMPTY_SET        of Region.t
 | EQ               of Region.t
@@ -177,6 +183,7 @@ type instruction =
 | IF_LEFT          of Region.t
 | IF_NONE          of Region.t
 | IF_RIGHT         of Region.t
+| IMPLICIT_ACCOUNT of Region.t
 | INT              of Region.t
 | ISNAT            of Region.t
 | ITER             of Region.t
@@ -211,7 +218,6 @@ type instruction =
 | SLICE            of Region.t
 | SOME             of Region.t
 | SOURCE           of Region.t
-| STEPS_TO_QUOTA   of Region.t
 | SUB              of Region.t
 | SWAP             of Region.t
 | TRANSFER_TOKENS  of Region.t
@@ -226,19 +232,24 @@ let instr_list = [
   (fun reg -> ADDRESS          reg);
   (fun reg -> AMOUNT           reg);
   (fun reg -> AND              reg);
+  (fun reg -> APPLY            reg);
   (fun reg -> BALANCE          reg);
   (fun reg -> BLAKE2B          reg);
+  (fun reg -> CHAIN_ID         reg);
   (fun reg -> CAST             reg);
   (fun reg -> CHECK_SIGNATURE  reg);
   (fun reg -> COMPARE          reg);
   (fun reg -> CONCAT           reg);
   (fun reg -> CONS             reg);
   (fun reg -> CONTRACT         reg);
-  (fun reg -> CREATE_ACCOUNT   reg);
   (fun reg -> CREATE_CONTRACT  reg);
-  (fun reg -> IMPLICIT_ACCOUNT reg);
+  (fun reg -> DIG              reg);
+  (fun reg -> DIP              reg);
   (fun reg -> DROP             reg);
+  (fun reg -> DUG              reg);
+  (fun reg -> DUP              reg);
   (fun reg -> EDIV             reg);
+  (fun reg -> EMPTY_BIG_MAP    reg);
   (fun reg -> EMPTY_MAP        reg);
   (fun reg -> EMPTY_SET        reg);
   (fun reg -> EQ               reg);
@@ -253,6 +264,7 @@ let instr_list = [
   (fun reg -> IF_LEFT          reg);
   (fun reg -> IF_NONE          reg);
   (fun reg -> IF_RIGHT         reg);
+  (fun reg -> IMPLICIT_ACCOUNT reg);
   (fun reg -> INT              reg);
   (fun reg -> ISNAT            reg);
   (fun reg -> ITER             reg);
@@ -287,7 +299,6 @@ let instr_list = [
   (fun reg -> SLICE            reg);
   (fun reg -> SOME             reg);
   (fun reg -> SOURCE           reg);
-  (fun reg -> STEPS_TO_QUOTA   reg);
   (fun reg -> SUB              reg);
   (fun reg -> SWAP             reg);
   (fun reg -> TRANSFER_TOKENS  reg);
@@ -303,19 +314,24 @@ let proj_instr = function
 | ADDRESS          region -> region, "ADDRESS"
 | AMOUNT           region -> region, "AMOUNT"
 | AND              region -> region, "AND"
+| APPLY            region -> region, "APPLY"
 | BALANCE          region -> region, "BALANCE"
 | BLAKE2B          region -> region, "BLAKE2B"
+| CHAIN_ID         region -> region, "CHAIN_ID"
 | CAST             region -> region, "CAST"
 | CHECK_SIGNATURE  region -> region, "CHECK_SIGNATURE"
 | COMPARE          region -> region, "COMPARE"
 | CONCAT           region -> region, "CONCAT"
 | CONS             region -> region, "CONS"
 | CONTRACT         region -> region, "CONTRACT"
-| CREATE_ACCOUNT   region -> region, "CREATE_ACCOUNT"
 | CREATE_CONTRACT  region -> region, "CREATE_CONTRACT"
-| IMPLICIT_ACCOUNT region -> region, "IMPLICIT_ACCOUNT"
+| DIG              region -> region, "DIG"
+| DIP              region -> region, "DIP"
 | DROP             region -> region, "DROP"
+| DUG              region -> region, "DUG"
+| DUP              region -> region, "DUP"
 | EDIV             region -> region, "EDIV"
+| EMPTY_BIG_MAP    region -> region, "EMPTY_BIG_MAP"
 | EMPTY_MAP        region -> region, "EMPTY_MAP"
 | EMPTY_SET        region -> region, "EMPTY_SET"
 | EQ               region -> region, "EQ"
@@ -330,6 +346,7 @@ let proj_instr = function
 | IF_LEFT          region -> region, "IF_LEFT"
 | IF_NONE          region -> region, "IF_NONE"
 | IF_RIGHT         region -> region, "IF_RIGHT"
+| IMPLICIT_ACCOUNT region -> region, "IMPLICIT_ACCOUNT"
 | INT              region -> region, "INT"
 | ISNAT            region -> region, "ISNAT"
 | ITER             region -> region, "ITER"
@@ -364,7 +381,6 @@ let proj_instr = function
 | SLICE            region -> region, "SLICE"
 | SOME             region -> region, "SOME"
 | SOURCE           region -> region, "SOURCE"
-| STEPS_TO_QUOTA   region -> region, "STEPS_TO_QUOTA"
 | SUB              region -> region, "SUB"
 | SWAP             region -> region, "SWAP"
 | TRANSFER_TOKENS  region -> region, "TRANSFER_TOKENS"
@@ -389,6 +405,7 @@ let instr_map =
 
 type macro =
   (* Constant macros *)
+
   ASSERT        of Region.t
 | ASSERT_CMPEQ  of Region.t
 | ASSERT_CMPGE  of Region.t
@@ -428,12 +445,10 @@ type macro =
 | IF_NONE       of Region.t
 | IF_SOME       of Region.t
 
-(* Non-constant macros *)
+  (* Non-constant macros *)
 
 | PAIR     of Pair.tree Region.reg
 | UNPAIR   of Pair.tree Region.reg
-| DIP      of (string * int) Region.reg  (* The lexeme and number of Is *)
-| DUP      of int Region.reg             (* The number of Us *)
 | CADR     of Pair.path Region.reg
 | SET_CADR of Pair.path Region.reg
 | MAP_CADR of Pair.path Region.reg
@@ -526,16 +541,12 @@ let proj_macro = function
     region, sprintf "%sR" Pair.(encode tree |> drop)
 | UNPAIR {region; value=tree} ->
     region, sprintf "UN%sR" Pair.(encode tree |> drop)
-| DIP {region; value=code} ->
-    region, fst code
-| DUP {region; value} ->
-    region, sprintf "D%sP" (String.make value 'U')
-| CADR {region; value=path} ->
-    region, Pair.drop_path path
-| SET_CADR {region; value=path} ->
-    region, sprintf "SET_%s" (Pair.drop_path path)
-| MAP_CADR {region; value=path} ->
-    region, sprintf "MAP_%s" (Pair.drop_path path)
+| CADR {region; value} ->
+    region, Pair.drop_path value
+| SET_CADR {region; value} ->
+    region, sprintf "SET_%s" (Pair.drop_path value)
+| MAP_CADR {region; value} ->
+    region, sprintf "MAP_%s" (Pair.drop_path value)
 
 let macro_to_lexeme macro = proj_macro macro |> snd
 
@@ -555,6 +566,7 @@ type m_type =
 | T_big_map   of Region.t  (* "big_map"   *)
 | T_bool      of Region.t  (* "bool"      *)
 | T_bytes     of Region.t  (* "bytes"     *)
+| T_chain_id  of Region.t  (* "chain_id"  *)
 | T_contract  of Region.t  (* "contract"  *)
 | T_int       of Region.t  (* "int"       *)
 | T_key       of Region.t  (* "key"       *)
@@ -579,6 +591,7 @@ let type_list = [
   (fun reg -> T_big_map    reg);
   (fun reg -> T_bool       reg);
   (fun reg -> T_bytes      reg);
+  (fun reg -> T_chain_id   reg);
   (fun reg -> T_contract   reg);
   (fun reg -> T_int        reg);
   (fun reg -> T_key        reg);
@@ -604,6 +617,7 @@ let type_to_lexeme = function
 | T_big_map   _ -> "big_map"
 | T_bool      _ -> "bool"
 | T_bytes     _ -> "bytes"
+| T_chain_id  _ -> "chain_id"
 | T_contract  _ -> "contract"
 | T_int       _ -> "int"
 | T_key       _ -> "key"
@@ -628,6 +642,7 @@ let proj_type = function
 | T_big_map   region -> region, "T_big_map"
 | T_bool      region -> region, "T_bool"
 | T_bytes     region -> region, "T_bytes"
+| T_chain_id  region -> region, "T_chain_id"
 | T_contract  region -> region, "T_contract"
 | T_int       region -> region, "T_int"
 | T_key       region -> region, "T_key"
@@ -661,7 +676,7 @@ type lexis = {
   data_map  : (Region.t -> data)        SMap.t;
   instr_map : (Region.t -> instruction) SMap.t;
   macro_map : (Region.t -> macro)       SMap.t;
-  type_map  : (Region.t -> type_)       SMap.t
+  type_map  : (Region.t -> m_type)      SMap.t
 }
 
 let lexicon = {kwd_map; data_map; instr_map; macro_map; type_map}
@@ -706,16 +721,12 @@ let to_lexeme = function
 
 let proj_token = function
   String {region; value} ->
-    region, sprintf "String %s" value
-
-| Bytes {region; value=s,b} ->
+    region, sprintf "String %S" value
+| Bytes Region.{region; value = s,b} ->
     region,
-    sprintf "Bytes (\"%s\", \"0x%s\")"
-      s (Hex.to_hex b |> Hex.to_string)
-
+    sprintf "Bytes (%S, \"0x%s\")" s (Hex.show b)
 | Int {region; value=s,n} ->
-    region, sprintf "Int (\"%s\", %s)" s (Z.to_string n)
-
+    region, sprintf "Int (%S, %s)" s (Z.to_string n)
 | Keyword k -> proj_keyword k
 | Data d -> proj_data d
 | Instr i -> proj_instr i
@@ -769,6 +780,9 @@ let mk_tree offset code region =
       let macro = if offset = 0 then PAIR payload else UNPAIR payload
       in Ok (Macro macro)
 
+let mk_macro f region code =
+  Ok (Macro (f Region.{region; value = Pair.lift_path code}))
+
 (* END HEADER *)
 }
 
@@ -776,13 +790,12 @@ let mk_tree offset code region =
 
 (* Named regular expressions *)
 
-let dup       = 'D' 'U'+ 'P' as code
+let pair      = ('P' ('P'|'A'|'I')+ as code) 'R'
+let unpair    = "UN" pair
 let cadr      = 'C' ('A'|'D')+ 'R' as code
 let set_cadr  = "SET_" cadr
 let map_cadr  = "MAP_" cadr
-let pair      = ('P' ('P'|'A'|'I')+ as code) 'R'
-let unpair    = "UN" pair
-let dip       = 'D' ('I'|'V'|'X'|'L'|'C'|'D'|'M')+ 'P'
+
 let uppercase = ['A'-'Z']
 let lowercase = ['a'-'z']
 let digit     = ['0'-'9']
@@ -794,65 +807,38 @@ let kwd_type  = lowercase (lowercase | '_')* as id
 (* Rules *)
 
 rule scan_ident region lexicon = parse
-  dup eof      { Ok (Macro (DUP {region; value = String.length code - 2}))   }
-| cadr eof     { Ok (Macro (CADR {region; value = Pair.lift_path code}))     }
-| set_cadr eof { Ok (Macro (SET_CADR {region; value = Pair.lift_path code})) }
-| map_cadr eof { Ok (Macro (MAP_CADR {region; value = Pair.lift_path code})) }
-| pair eof     { mk_tree 0 code region }
-| unpair eof   { mk_tree 2 code region }
+  pair     eof { mk_tree 0 code region }
+| unpair   eof { mk_tree 2 code region }
+| cadr     eof { mk_macro (fun r -> CADR r) region code }
+| set_cadr eof { mk_macro (fun r -> SET_CADR r) region code }
+| map_cadr eof { mk_macro (fun r -> MAP_CADR r) region code }
 
-| 'D''I'+'P' eof
-               { let code = Lexing.lexeme lexbuf in
-                 let value = code, String.length code - 2
-                 in Ok (Macro (DIP {region; value})) }
-| dip eof      { let start = Lexing.((lexeme_start_p lexbuf).pos_cnum) in
-                 let lexeme = Lexing.lexeme lexbuf in
-                 let () = rollback lexbuf in
-                 try
-                   let num = RomanParser.macro scan_roman_numeral lexbuf in
-                   let value = lexeme, num
-                   in Ok (Macro (DIP {region; value}))
-                 with RomanParser.Error ->
-                   let stop  = Lexing.((lexeme_end_p lexbuf).pos_cnum) in
-                   let index = stop - start - 1 in
-                   Error (Invalid_Roman_numeral index) }
+| (instr as id) eof {
+    match SMap.find_opt id lexicon.instr_map with
+      Some mk_instr -> Ok (Instr (mk_instr region))
+    | None -> match SMap.find_opt id lexicon.macro_map with
+                Some mk_macro -> Ok (Macro (mk_macro region))
+              | None -> Error Invalid_identifier }
 
-| (instr as id) eof
-               { match SMap.find_opt id lexicon.instr_map with
-                  Some mk_instr -> Ok (Instr (mk_instr region))
-                | None ->
-                    match SMap.find_opt id lexicon.macro_map with
-                      Some mk_macro -> Ok (Macro (mk_macro region))
-                    | None -> Error Invalid_identifier }
+| data eof {
+    match SMap.find_opt id lexicon.data_map with
+      Some mk_data -> Ok (Data (mk_data region))
+    | None -> Error Invalid_identifier }
 
-| data eof     { match SMap.find_opt id lexicon.data_map with
-                   Some mk_data -> Ok (Data (mk_data region))
-                 | None -> Error Invalid_identifier }
+| kwd_type eof {
+    match SMap.find_opt id lexicon.kwd_map with
+      Some mk_kwd -> Ok (Keyword (mk_kwd region))
+    | None -> match SMap.find_opt id lexicon.type_map with
+                Some mk_type -> Ok (Type (mk_type region))
+              | None -> Error Invalid_identifier }
 
-| kwd_type eof { match SMap.find_opt id lexicon.kwd_map with
-                   Some mk_kwd -> Ok (Keyword (mk_kwd region))
-                 | None ->
-                     match SMap.find_opt id lexicon.type_map with
-                       Some mk_type -> Ok (Type (mk_type region))
-                     | None -> Error Invalid_identifier }
+| instr { let stop  = Lexing.lexeme_end_p lexbuf in
+          let index = stop.Lexing.pos_cnum in
+          match scan_ident region lexicon lexbuf with
+            Ok _ -> Error (Missing_break index)
+          | Error _ -> Error Invalid_identifier }
 
-| instr        { let stop  = Lexing.lexeme_end_p lexbuf in
-                 let index = stop.Lexing.pos_cnum in
-                 match scan_ident region lexicon lexbuf with
-                      Ok _ -> Error (Missing_break index)
-                 | Error _ -> Error Invalid_identifier }
-
-|            _ { Error Invalid_identifier }
-
-and scan_roman_numeral = parse
-  'I' { RomanParser.I }
-| 'V' { RomanParser.V }
-| 'X' { RomanParser.X }
-| 'L' { RomanParser.L }
-| 'C' { RomanParser.C }
-| 'D' { RomanParser.D }
-| 'M' { RomanParser.M }
-| 'P' { RomanParser.P }
+| _ { Error Invalid_identifier }
 
 (* END LEXER DEFINITION *)
 
@@ -865,17 +851,17 @@ let mk_string lexeme region = String {region; value=lexeme}
 
 let mk_bytes lexeme region =
   let norm = Str.(global_replace (regexp "_") "" lexeme) in
-  let value = lexeme, Hex.of_hex (Hex.of_string norm) (* Hmmm *)
-  in Bytes {region; value}
+  let value = lexeme, `Hex norm
+  in Bytes Region.{region; value}
 
 type int_err = Non_canonical_zero
 
 let mk_int lexeme region =
-  let z = Str.(global_replace (regexp "_") "" lexeme)
-          |> Z.of_string in
-  if   Z.equal z Z.zero && lexeme <> "0"
-  then Error Non_canonical_zero
-  else Ok (Int {region; value = lexeme, z})
+  let z =
+    Str.(global_replace (regexp "_") "" lexeme) |> Z.of_string
+  in if   Z.equal z Z.zero && lexeme <> "0"
+     then Error Non_canonical_zero
+     else Ok (Int Region.{region; value = lexeme,z})
 
 let eof region = EOF region
 
@@ -910,31 +896,71 @@ let mk_ident lexeme region = mk_ident' lexeme region lexicon
 
 (* Predicates *)
 
-let is_string = function
-  String _ -> true
-|        _ -> false
-
-let is_bytes = function
-  Bytes _ -> true
-|       _ -> false
-
-let is_int = function
-  Int _ -> true
-|     _ -> false
-
-let is_ident = function
+let is_string = function String _ -> true | _ -> false
+let is_bytes  = function Bytes _  -> true | _ -> false
+let is_int    = function Int _    -> true | _ -> false
+let is_annot  = function Annot _  -> true | _ -> false
+let is_ident  = function
   Keyword _ | Data _ | Instr _ | Macro _ | Type _ -> true
 | _ -> false
-
-let is_annot = function
-  Annot _ -> true
-|       _ -> false
 
 let is_sym = function
   SEMI _ | LPAREN _ | RPAREN _ | LBRACE _ | RBRACE _ -> true
 | _ -> false
 
 let is_eof = function EOF _ -> true | _ -> false
+
+(* ERRORS *)
+
+type error =
+  Odd_lengthed_bytes
+| Missing_break
+
+let error_to_string = function
+  Odd_lengthed_bytes ->
+    "The length of the byte sequence is an odd number.\n\
+     Hint: Add or remove a digit."
+| Missing_break ->
+    "Missing break.\n\
+     Hint: Insert some space."
+
+exception Error of error Region.reg
+
+let format_error ?(offsets=true) mode Region.{region; value} ~file =
+  let msg = error_to_string value
+  and reg = region#to_string ~file ~offsets mode in
+  let value = sprintf "Lexical error %s:\n%s\n" reg msg
+  in Region.{value; region}
+
+let fail region value = raise (Error Region.{region; value})
+
+let check_right_context token next_token buffer : unit =
+  let pos    = (to_region token)#stop in
+  let region = Region.make ~start:pos ~stop:pos in
+  match next_token buffer with
+    None -> ()
+  | Some (markup, next) ->
+      match markup with
+        [] ->
+          if   is_int token
+          then if   is_string next || is_ident next
+               then fail region Missing_break
+               else ()
+          else
+            if   is_string token
+            then if   is_string next || is_int next
+                      || is_bytes next || is_ident next
+                 then fail region Missing_break
+                 else ()
+            else
+              if   is_bytes token
+              then if   is_string next || is_ident next
+                   then fail region Missing_break
+                   else if   is_int next
+                        then fail region Odd_lengthed_bytes
+                        else ()
+              else ()
+      | _::_ -> ()
 
 (* END TRAILER *)
 }
