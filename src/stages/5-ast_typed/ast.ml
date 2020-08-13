@@ -451,6 +451,11 @@ and type_constraint_simpl =
   | SC_Typeclass   of c_typeclass_simpl               (* TC(α, …) *)
   | SC_Row         of c_row_simpl                     (* α = row(l -> β, …) *)
 
+and deduce_and_clean_result = {
+  deduced : c_constructor_simpl_list ;
+  cleaned : c_typeclass_simpl ;
+}
+
 and c_alias = {
     reason_alias_simpl : string ;
     a : type_variable ;
