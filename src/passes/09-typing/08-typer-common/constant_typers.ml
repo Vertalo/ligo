@@ -669,7 +669,7 @@ let test_set_balance = typer_2 "TEST_SET_BALANCE" @@ fun addr b ->
 let test_external_call = typer_3 "TEST_EXTERNAL_CALL" @@ fun addr _p amt  ->
   let%bind () = assert_eq addr (t_address ()) in
   let%bind () = assert_eq amt (t_mutez ()) in
-  ok (t_list (t_operation ()))
+  ok (t_unit ())
 
 let test_get_storage = typer_1_opt "TEST_GET_STORAGE" @@ fun addr opt ->
   let%bind () = assert_eq addr (t_address ()) in

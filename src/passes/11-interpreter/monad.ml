@@ -16,7 +16,9 @@ module Command = struct
   type 'a t =
     | Fail_overflow : Location.t -> 'a t
     | Fail_reject : Location.t * LT.value -> 'a t
-    | External_call : string * LT.Tez.t -> (LT.value * LT.value) t
+    | Get_script : string -> (LT.value * LT.value) option t
+    | Get_contract : string -> LT.value option t
+    | External_call : string * LT.Tez.t -> unit t
     | Update_storage : string * LT.value -> unit t
     | Get_storage : string -> LT.value t
     | Inject_script : string * LT.value * LT.value -> unit t
@@ -78,6 +80,19 @@ module Command = struct
       fail (`Ligo_interpret_overflow location)
     | Fail_reject (location, e) ->
       fail (`Ligo_interpret_reject (location,e))
+    | Get_script addr ->
+      let contract = Mini_proto.StateMap.find_opt (Address addr) ctxt.contracts in
+      let res = match contract with
+        | Some contract -> Some (contract.script.code, contract.script.storage)
+        | None -> None
+      in
+      ok (res, ctxt)
+    | Get_contract addr ->
+      let exists = Mini_proto.StateMap.mem (Address addr) ctxt.contracts in
+      if exists then
+        ok @@ (Some (LT.V_Ct (LT.C_address addr)), ctxt)
+      else
+        ok @@ (None, ctxt)
     | External_call (addr, amt) ->
       let aux : Mini_proto.state option -> Mini_proto.state option = fun state_opt ->
         match state_opt with
@@ -93,7 +108,7 @@ module Command = struct
       let contract = Mini_proto.StateMap.find (Address addr) contracts in
       let step_constants = { ctxt.step_constants with payer = ctxt.step_constants.source ; balance = contract.script_balance} in
       let ctxt : Mini_proto.t = { contracts ; step_constants } in
-      ok ( (contract.script.code, contract.script.storage), ctxt)
+      ok ( (), ctxt)
     | Update_storage (addr, storage) ->
       let aux : Mini_proto.state option -> Mini_proto.state option = fun state_opt ->
         match state_opt with

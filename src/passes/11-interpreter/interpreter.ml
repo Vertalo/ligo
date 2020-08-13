@@ -89,9 +89,7 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_NIL  , [] ) -> return @@ V_List []
     (* unary *)
     | ( C_FAILWITH , [ V_Ct (C_string a') ] ) ->
-      (*TODO This raise is here until we properly implement effects*)
-      raise (Temporary_hack a')
-      (*TODO This raise is here until we properly implement effects*)
+      Misc.fail a'
     | ( C_SIZE   , [(V_Set l | V_List l)] ) -> return_ct @@ C_nat (Z.of_int @@ List.length l)
     | ( C_SIZE   , [ V_Map l            ] ) -> return_ct @@ C_nat (Z.of_int @@ List.length l)
     | ( C_SIZE   , [ V_Ct (C_string s ) ] ) -> return_ct @@ C_nat (Z.of_int @@ String.length s)
@@ -108,14 +106,14 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_FOLD_STOP      , [ v ] ) -> return @@ v_pair (v_bool false , v)
     | ( C_ASSERTION , [ v ] ) ->
       if (is_true v) then return_ct @@ C_unit
-      else raise (Temporary_hack "failed assertion")
+      else Misc.fail "failed assertion"
     | C_MAP_FIND_OPT , [ k ; V_Map l ] -> ( match List.assoc_opt k l with
       | Some v -> return @@ v_some v
       | None -> return @@ v_none ()
     )
     | C_MAP_FIND , [ k ; V_Map l ] -> ( match List.assoc_opt k l with
       | Some v -> return @@ v
-      | None -> raise (Temporary_hack "failed map find")
+      | None -> Misc.fail "failed map find"
     )
     (* binary *)
     | ( (C_EQ | C_NEQ | C_LT | C_LE | C_GT | C_GE) , _ ) -> apply_comparison c operands
@@ -158,21 +156,21 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
       begin
         match a with
         | Some (res,_) -> return_ct @@ C_int res
-        | None -> failwith "TODO div/0 ?"
+        | None -> Misc.fail "TODO div/0 ?"
       end
     | ( C_DIV    , [ V_Ct (C_nat a')  ; V_Ct (C_nat b')  ] ) ->
       let>> a = Int_ediv_n (a',b') in
       begin
         match a with
         | Some (res,_) -> return_ct @@ C_nat res
-        | None -> failwith "TODO div/0 ?"
+        | None -> Misc.fail "TODO div/0 ?"
       end
     | ( C_DIV    , [ V_Ct (C_mutez a')  ; V_Ct (C_nat b'  )  ] ) ->
       let>> a' = Int_of_int64 (Tez.to_mutez a') in
       let>> res = Int_ediv (a', b') in
       begin
         match res with
-        | None -> failwith "TODO div/0 ?"
+        | None -> Misc.fail "TODO div/0 ?"
         | Some (q, _r) ->
             let>> q' = Int_to_int64 q in
               match q' with
@@ -181,10 +179,10 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
                     match Tez.of_mutez q with
                     | Some q -> return_ct @@ C_mutez q
                     (* Cannot overflow *)
-                    | _ -> failwith "TODO div/0 ?"
+                    | _ -> Misc.fail "TODO div/0 ?"
                   end
               (* Cannot overflow *)
-              | _ -> failwith "TODO div/0 ?"
+              | _ -> Misc.fail "TODO div/0 ?"
       end
     | ( C_DIV    , [ V_Ct (C_mutez a')  ; V_Ct (C_mutez b')  ] ) ->
       let abs : Tez.t -> _ Monad.t = fun x ->
@@ -197,7 +195,7 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
       let>> div = Int_ediv_n (a', b') in
       begin
         match div with
-            | None -> failwith "TODO div/0"
+            | None -> Misc.fail "TODO div/0"
             | Some (q, _r) -> return_ct @@ (C_nat q)
       end
     | ( C_MOD    , [ V_Ct (C_int a')    ; V_Ct (C_int b')    ] )
@@ -207,14 +205,14 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
       begin
         match a with
         | Some (_,r) -> return_ct @@ C_nat r
-        | None -> failwith "TODO div/0 ?"
+        | None -> Misc.fail "TODO div/0 ?"
       end
     | ( C_MOD    , [ V_Ct (C_nat a')    ; V_Ct (C_nat b')    ] ) ->
       let>> a = Int_ediv_n (a',b') in
       begin
         match a with
         | Some (_,r) -> return_ct @@ C_nat r
-        | None -> failwith "TODO div/0 ?"
+        | None -> Misc.fail "TODO div/0 ?"
       end
     | ( C_CONCAT , [ V_Ct (C_string a') ; V_Ct (C_string b') ] ) -> return_ct @@ C_string (a' ^ b')
     | ( C_CONCAT , [ V_Ct (C_bytes a' ) ; V_Ct (C_bytes b' ) ] ) -> return_ct @@ C_bytes  (Bytes.cat a' b')
@@ -318,6 +316,18 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_BALANCE , [] ) -> let>> blc = Balance in return_ct @@ C_mutez blc
     | ( C_SENDER, [] ) -> let>> snd = Sender in return_ct @@ C_address snd
     | ( C_SOURCE, [] ) -> let>> src = Source in return_ct @@ C_address src
+    | ( C_CONTRACT_OPT , [ V_Ct (C_address addr) ] ) ->
+      let>> v = Get_contract addr in
+      ( match v with
+        | Some v -> return (V_Construct ("Some", v))
+        | None -> return (V_Construct ("None", V_Ct C_unit))
+      ) 
+    | ( C_CONTRACT , [ V_Ct (C_address addr) ] ) ->
+      let>> v = Get_contract addr in
+      ( match v with
+        | Some v -> return v
+        | None -> return (Misc.contract_not_found addr)
+      ) 
     (* Test operators *)
     | ( C_TEST_INJECT_SCRIPT, [ V_Ct (C_address addr) ; code ; storage ] ) ->
       let>> () = Inject_script (addr, code, storage) in
@@ -332,21 +342,25 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
       let>> () = Set_source addr in
       return_ct C_unit
     | ( C_TEST_EXTERNAL_CALL , [ V_Ct (C_address addr) ; param ; V_Ct (C_mutez amt) ] ) ->
-      let>> (code,storage) = External_call (addr, amt) in
-      let* result = match code with
-        | V_Func_val {arg_binder ; body ; env} ->
-          let param_storage = V_Record (LMap.of_list [ (Label "0", param) ; (Label "1", storage) ]) in
-          let f_env' = Env.extend env (arg_binder, param_storage) in
-          eval_ligo body f_env'
-        | _ -> failwith "code is not a function" in
+      let>> script = Get_script addr in
+      let* result = match script with
+        | None -> return (Misc.contract_not_found addr)
+        | Some (code, storage) -> ( match code with
+          | V_Func_val {arg_binder ; body ; env} ->
+            let param_storage = V_Record (LMap.of_list [ (Label "0", param) ; (Label "1", storage) ]) in
+            let f_env' = Env.extend env (arg_binder, param_storage) in
+            eval_ligo body f_env'
+          | _ -> failwith "code is not a function"
+        )
+      in
       ( match result with
-          | V_Failure _ -> return result (*TODO: ligo error here ? *)
-          | V_Record v ->
-            let ops = LMap.find (Label "0") v in
-            let new_st = LMap.find (Label "1") v in
-            let>> () = Update_storage (addr, new_st) in
-            return ops
-          | _ -> failwith "ll"
+        | V_Record v ->
+          let>> () = External_call (addr, amt) in
+          (* let ops = LMap.find (Label "0") v in *)
+          let new_st = LMap.find (Label "1") v in
+          let>> () = Update_storage (addr, new_st) in
+          return_ct C_unit
+        | _ -> failwith "code does not return a pair nor fails"
       )
     | ( C_TEST_GET_STORAGE , [ V_Ct (C_address addr) ] ) ->
       let>> storage = Get_storage addr in
