@@ -100,7 +100,6 @@ let restrict (({ reason_constr_simpl = _; tv = _; c_tag = _; tv_list } as c) : c
    per argument. *)
 let check_typeclass_rectangular ({ reason_typeclass_simpl=_; tc; args } as tcs : c_typeclass_simpl) =
   let nargs = List.length args in
-  (* TODO: use the error monad for this internal error *)
   if (List.for_all (fun allowed -> List.length allowed = nargs) tc)
   then ok tcs
   else fail typeclass_not_a_rectangular_matrix
