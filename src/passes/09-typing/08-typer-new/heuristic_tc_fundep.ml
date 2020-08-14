@@ -122,14 +122,14 @@ let check_typeclass_transposed_rectangular (tc : (type_variable * type_value lis
                  z ? [ int           ; string        ; unit         ; ] ; ] *)
 let transpose : c_typeclass_simpl -> ((type_variable * type_value list) list, _) result =
   fun { reason_typeclass_simpl = _; tc; args } ->
-  (* TODO: List.map2 can raise an exception, catch it here and use the error monad to throw an internal error (all the lists of the typeclass should have the same length as the list of arguments. *)
-  check_typeclass_transposed_rectangular @@
-  List.map (fun (var, acc) -> (var, List.rev acc))
-  @@ List.fold_left
+  bind_fold_list
     (fun accs allowed_tuple ->
-       List.map2 (fun (var, acc) allowed_type -> (var, allowed_type :: acc)) accs allowed_tuple)
+       List.map2 (fun (var, acc) allowed_type -> (var, allowed_type :: acc)) accs allowed_tuple
+         ~ok ~fail:(fun _ _ -> fail @@ internal_error __LOC__ "typeclass is not represented by a rectangular matrix"))
     (List.map (fun var -> var, []) args)
     tc
+  >>|? List.map (fun (var, acc) -> (var, List.rev acc))
+  >>? check_typeclass_transposed_rectangular
 
 (* transpose_back [ x ? [ map(nat,unit) ; map(unit,nat) ; map(int,int) ; ] ;
                     z ? [ int           ; string        ; unit         ; ] ; ]
@@ -139,16 +139,17 @@ let transpose : c_typeclass_simpl -> ((type_variable * type_value list) list, _)
 let transpose_back : _ -> (type_variable * type_value list) list -> (c_typeclass_simpl, _) result =
   fun reason_typeclass_simpl tcs ->
   (* TODO: List.map2 can raise an exception, catch it here and use the error monad to throw an internal error (all the lists of the typeclass should have the same length as the list of arguments. *)
-  let tc =
+  let%bind tc =
     match tcs with
-    | [] -> []
+    | [] -> ok []
     | (_, hd_allowed_types) :: _ ->
-      List.map (fun allowed_typle -> List.rev allowed_typle)
-      @@ List.fold_left
+      bind_fold_list
         (fun allowed_tuples allowed_types ->
-           List.map2 (fun allowed_tuple allowed_type -> allowed_type :: allowed_tuple) allowed_tuples allowed_types)
+           List.map2 (fun allowed_tuple allowed_type -> allowed_type :: allowed_tuple) allowed_tuples allowed_types
+             ~ok ~fail:(fun _ _ -> fail @@ internal_error __LOC__ "transposed typeclass is not represented by a rectangular matrix"))
         (List.map (fun _ -> []) hd_allowed_types)
         (List.map snd tcs)
+      >>|? List.map (fun allowed_typle -> List.rev allowed_typle)
   in
   let args = List.map fst tcs in
   check_typeclass_rectangular @@
