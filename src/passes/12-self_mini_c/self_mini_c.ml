@@ -94,6 +94,7 @@ let is_pure_constant : constant' -> bool =
   | C_TEST_SET_SOURCE
   | C_TEST_SET_BALANCE
   | C_TEST_EXTERNAL_CALL
+  | C_TEST_ASSERT_FAILURE
     -> false
 
 let rec is_pure : expression -> bool = fun e ->

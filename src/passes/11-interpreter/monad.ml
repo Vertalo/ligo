@@ -190,6 +190,7 @@ type 'a t =
   | Return : 'a -> 'a t
   (* | Trace : Error.t * 'a t -> 'a t *)
   | Bind_err : 'a result_monad -> 'a t
+  | Try : 'a t -> bool t
 
 let rec eval
   : type a.
@@ -202,6 +203,13 @@ let rec eval
   | Bind (e', f) ->
     let%bind (v, ctxt) = eval e' ctxt log in
     eval (f v) ctxt log
+  | Try e ->
+    begin
+    try
+      let%bind _ = eval e ctxt log in
+      ok (false, ctxt)
+    with LT.Temporary_hack _s -> ok (true, ctxt)
+    end
   | Call command -> Command.eval command ctxt log
   | Return v -> ok (v, ctxt)
   | Bind_err x ->

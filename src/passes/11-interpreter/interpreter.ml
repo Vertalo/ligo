@@ -353,7 +353,8 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
           | _ -> failwith "code is not a function"
         )
       in
-      ( match result with
+      begin
+        match result with
         | V_Record v ->
           let>> () = External_call (addr, amt) in
           (* let ops = LMap.find (Label "0") v in *)
@@ -361,10 +362,13 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
           let>> () = Update_storage (addr, new_st) in
           return_ct C_unit
         | _ -> failwith "code does not return a pair nor fails"
-      )
+      end
     | ( C_TEST_GET_STORAGE , [ V_Ct (C_address addr) ] ) ->
       let>> storage = Get_storage addr in
       return storage
+    | ( C_TEST_ASSERT_FAILURE , [ V_Func_val {arg_binder=_ ; body ; env} ] ) ->
+      let* failed = Try (eval_ligo body env) in
+      return_ct (C_bool failed)
     | _ ->
       let () = Format.printf "%a\n" Ast_typed.PP.constant c in
       let () = List.iter ( fun e -> Format.printf "%s\n" (Ligo_interpreter.PP.pp_value e)) operands in

@@ -676,6 +676,12 @@ let test_get_storage = typer_1_opt "TEST_GET_STORAGE" @@ fun addr opt ->
   let%bind storage_t = trace_option not_annotated opt in
   ok storage_t
 
+let test_assert_failure = typer_1 "TEST_ASSERT_FAILURE" @@ fun f ->
+  let%bind (input , output) = trace_option (expected_function f) @@ get_t_function f in
+  let%bind () = assert_eq input (t_unit ()) in
+  ignore output;
+  ok (t_bool ())
+
 let constant_typers c loc : (typer , typer_error) result = match c with
   | C_INT                 -> ok @@ int ;
   | C_UNIT                -> ok @@ unit loc;
@@ -778,4 +784,5 @@ let constant_typers c loc : (typer , typer_error) result = match c with
   | C_TEST_SET_BALANCE -> ok @@ test_set_balance ;
   | C_TEST_EXTERNAL_CALL -> ok @@ test_external_call ;
   | C_TEST_GET_STORAGE -> ok @@ test_get_storage ;
+  | C_TEST_ASSERT_FAILURE -> ok @@ test_assert_failure ;
   | _ as cst -> fail (corner_case @@ Format.asprintf "typer not implemented for constant %a" PP.constant cst)

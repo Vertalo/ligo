@@ -137,6 +137,7 @@ let constant ppf : constant' -> unit = function
   | C_TEST_SET_BALANCE -> fprintf ppf "TEST_SET_BALANCE"
   | C_TEST_EXTERNAL_CALL -> fprintf ppf "TEST_EXTERNAL_CALL"
   | C_TEST_GET_STORAGE -> fprintf ppf "TEST_GET_STORAGE"
+  | C_TEST_ASSERT_FAILURE -> fprintf ppf "TEST_ASSERT_FAILURE"
 
 let operation ppf (o : Memory_proto_alpha.Protocol.Alpha_context.packed_internal_operation) : unit =
   let print_option f ppf o =
