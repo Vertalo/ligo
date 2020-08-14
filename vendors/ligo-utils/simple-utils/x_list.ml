@@ -10,12 +10,12 @@ let rec take n = function
   | _ when n = 0 -> []
   | hd :: tl -> hd :: take (n - 1) tl
 
-let map ?(acc = []) f lst =
+let map f lst =
   let rec aux acc f = function
     | [] -> acc
     | hd :: tl -> aux (f hd :: acc) f tl
   in
-  aux acc f (List.rev lst)
+  List.rev (aux [] f lst)
 
 let fold_map_right : type acc ele ret . (acc -> ele -> (acc * ret)) -> acc -> ele list -> ret list =
   fun f acc lst ->
