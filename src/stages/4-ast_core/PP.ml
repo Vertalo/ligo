@@ -113,7 +113,7 @@ let rec type_content : formatter -> type_expression -> unit =
   | T_arrow a -> fprintf ppf "%a -> %a" type_expression a.type1 type_expression a.type2
   | T_variable tv -> type_variable ppf tv
   | T_wildcard -> fprintf ppf "_"
-  | T_constant {type_constant=tc;arguments} -> fprintf ppf "%a%a" type_constant tc (list_sep_d_par type_expression) arguments
+  | T_constant (tc,arguments) -> fprintf ppf "%a%a" type_constant tc (list_sep_d_par type_expression) arguments
 
 and type_expression ppf (te : type_expression) : unit =
   fprintf ppf "%a" type_content te
@@ -163,7 +163,7 @@ and expression_content ppf (ec : expression_content) =
       fprintf ppf "%a : %a" expression anno_expr type_expression
         type_annotation
 
-and binder ppf ({var; ty} : binder) =
+and binder ppf ({var; ty} : _ binder) =
     fprintf ppf "(%a : %a)" expression_variable var type_expression ty
 
 and assoc_expression ppf : expression * expression -> unit =

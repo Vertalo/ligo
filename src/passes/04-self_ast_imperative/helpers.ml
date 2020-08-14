@@ -98,15 +98,15 @@ let rec fold_expression : ('a, 'err) folder -> 'a -> expression -> ('a, 'err) re
       let%bind res = bind_fold_list aux init' access_path in
       let%bind res = self res expression in
       ok res
-  | E_for {body; _} ->
-      let%bind res = self init' body in
+  | E_for {f_body; _} ->
+      let%bind res = self init' f_body in
       ok res
-  | E_for_each {collection; body; _} ->
+  | E_for_each {collection; fe_body; _} ->
       let%bind res = self init' collection in
-      let%bind res = self res body in
+      let%bind res = self res fe_body in
       ok res
-  | E_while {condition; body} ->
-      let%bind res = self init' condition in
+  | E_while {cond; body} ->
+      let%bind res = self init' cond in
       let%bind res = self res body in
       ok res  
 
@@ -254,17 +254,17 @@ let rec map_expression : 'err exp_mapper -> expression -> (expression, 'err) res
       let%bind expression = self expression in
       return @@ E_assign {variable;access_path;expression}
   )
-  | E_for {binder; start; final; increment; body} ->
-      let%bind body = self body in
-      return @@ E_for {binder; start; final; increment; body}
-  | E_for_each {binder; collection; collection_type; body} ->
+  | E_for {binder; start; final; incr; f_body} ->
+      let%bind f_body = self f_body in
+      return @@ E_for {binder; start; final; incr; f_body}
+  | E_for_each {fe_binder; collection; collection_type; fe_body} ->
       let%bind collection = self collection in
+      let%bind fe_body = self fe_body in
+      return @@ E_for_each {fe_binder; collection; collection_type; fe_body}
+  | E_while {cond; body} ->
+      let%bind cond = self cond in
       let%bind body = self body in
-      return @@ E_for_each {binder; collection; collection_type; body}
-  | E_while {condition; body} ->
-      let%bind condition = self condition in
-      let%bind body = self body in
-      return @@ E_while {condition; body}
+      return @@ E_while {cond; body}
 
   | E_literal _ | E_variable _ | E_raw_code _ | E_skip as e' -> return e'
 
@@ -450,17 +450,17 @@ let rec fold_map_expression : ('a, 'err) fold_mapper -> 'a -> expression -> ('a 
       let%bind (res, access_path)   = bind_fold_map_list aux init' access_path in
       let%bind (res, expression) = self res expression in
       ok (res, return @@ E_assign {variable;access_path;expression})
-  | E_for {binder; start; final; increment; body} ->
-      let%bind (res, body) = self init' body in
-      ok (res, return @@ E_for {binder; start; final; increment; body})
-  | E_for_each {binder; collection; collection_type; body} ->
+  | E_for {binder; start; final; incr; f_body} ->
+      let%bind (res, f_body) = self init' f_body in
+      ok (res, return @@ E_for {binder; start; final; incr; f_body})
+  | E_for_each {fe_binder; collection; collection_type; fe_body} ->
       let%bind res,collection = self init' collection in
+      let%bind res,fe_body    = self res fe_body in
+      ok (res, return @@ E_for_each {fe_binder; collection; collection_type; fe_body})
+  | E_while {cond; body} ->
+      let%bind res,cond = self init' cond in
       let%bind res,body = self res body in
-      ok (res, return @@ E_for_each {binder; collection; collection_type; body})
-  | E_while {condition; body} ->
-      let%bind res,condition = self init' condition in
-      let%bind res,body = self res body in
-      ok (res, return @@ E_while {condition; body})
+      ok (res, return @@ E_while {cond; body})
   | E_literal _ | E_variable _ | E_raw_code _ | E_skip as e' -> ok (init', return e')
 
 and fold_map_cases : ('a , 'err) fold_mapper -> 'a -> matching_expr -> ('a * matching_expr , 'err) result = fun f init m ->

@@ -1,4 +1,5 @@
 open Types
+module S = Ast_core
 
 val make_n_t : type_variable -> type_expression -> named_type_content
 val make_t : ?loc:Location.t -> type_content -> S.type_expression option -> type_expression
@@ -27,13 +28,13 @@ val t_variable  : ?loc:Location.t -> ?core:S.type_expression -> type_variable   
 val t_wildcard  : ?loc:Location.t -> ?core:S.type_expression -> unit -> type_expression
 val t_record    : te_lmap -> ?loc:Location.t -> ?core:S.type_expression -> unit -> type_expression
 val make_t_ez_record : ?loc:Location.t -> (string* type_expression) list -> type_expression 
-val ez_t_record : ( label * row_element ) list -> ?loc:Location.t -> ?core:S.type_expression -> unit -> type_expression 
+val ez_t_record : ( label * ty_expr row_element ) list -> ?loc:Location.t -> ?core:S.type_expression -> unit -> type_expression 
 
 val t_map            : ?loc:Location.t -> ?core:S.type_expression -> type_expression -> type_expression -> type_expression
 val t_big_map        : ?loc:Location.t -> ?core:S.type_expression -> type_expression -> type_expression -> type_expression
 val t_map_or_big_map : ?loc:Location.t -> ?core:S.type_expression -> type_expression -> type_expression -> type_expression
 val t_sum : Types.te_lmap -> ?loc:Location.t -> ?core:S.type_expression -> unit -> type_expression
-val make_t_ez_sum : ?loc:Location.t -> ?core:S.type_expression -> (label * row_element ) list -> type_expression
+val make_t_ez_sum : ?loc:Location.t -> ?core:S.type_expression -> (label * ty_expr row_element ) list -> type_expression
 val t_function : type_expression -> type_expression -> ?loc:Location.t -> ?s:S.type_expression -> unit -> type_expression
 val t_shallow_closure : type_expression -> type_expression -> ?loc:Location.t -> ?s:S.type_expression -> unit -> type_expression
 val get_type_expression : expression -> type_expression
@@ -50,9 +51,9 @@ val get_t_tuple : type_expression -> type_expression list option
 val get_t_pair : type_expression -> (type_expression * type_expression) option
 val get_t_function : type_expression -> (type_expression * type_expression) option
 val get_t_function_exn : type_expression -> (type_expression * type_expression)
-val get_t_sum     : type_expression -> row_element label_map option
-val get_t_sum_exn : type_expression -> row_element label_map
-val get_t_record  : type_expression -> row_element label_map option
+val get_t_sum     : type_expression -> ty_expr row_element label_map option
+val get_t_sum_exn : type_expression -> ty_expr row_element label_map
+val get_t_record  : type_expression -> ty_expr row_element label_map option
 val get_t_map : type_expression -> (type_expression * type_expression) option
 val get_t_big_map : type_expression -> (type_expression * type_expression) option
 val get_t_map_key : type_expression -> type_expression option
@@ -109,7 +110,7 @@ val e_lambda : lambda -> expression_content
 val e_pair : expression -> expression -> expression_content
 val e_application : expression -> expression -> expression_content
 val e_variable : expression_variable -> expression_content
-val e_let_in : expression_variable -> inline -> expression -> expression -> expression_content
+val e_let_in : expression_variable -> bool -> expression -> expression -> expression_content
 
 val e_a_unit : expression
 val e_a_int : Z.t -> expression

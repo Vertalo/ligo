@@ -1,4 +1,5 @@
 open Types
+module S = Ast_core
 
 let make_t ?(loc = Location.generated) type_content core = {type_content; location=loc; type_meta = core}
 let make_e ?(location = Location.generated) expression_content type_expression = {
@@ -49,7 +50,7 @@ let t_pair ?loc ?core a b : type_expression =
     (Label "1",{associated_type=b;michelson_annotation=None ; decl_pos = 0}) ] ?loc ?core ()
 
 let t_sum m ?loc ?core () : type_expression = make_t ?loc (T_sum m) core
-let make_t_ez_sum ?loc ?core (lst:(label * row_element) list) : type_expression =
+let make_t_ez_sum ?loc ?core (lst:(label * ty_expr row_element) list) : type_expression =
   let aux prev (k, v) = LMap.add k v prev in
   let map = List.fold_left aux LMap.empty lst in
   make_t ?loc (T_sum map) core
@@ -160,15 +161,15 @@ let get_t_function_exn t = match get_t_function t with
   | Some x -> x
   | None -> raise (Failure ("Internal error: broken invariant at " ^ __LOC__))
 
-let get_t_sum (t:type_expression) : row_element label_map option = match t.type_content with
+let get_t_sum (t:type_expression) : ty_expr row_element label_map option = match t.type_content with
   | T_sum m -> Some m
   | _ -> None
 
-let get_t_sum_exn (t:type_expression) : row_element label_map = match t.type_content with
+let get_t_sum_exn (t:type_expression) : ty_expr row_element label_map = match t.type_content with
   | T_sum m -> m
   | _ -> raise (Failure ("Internal error: broken invariant at " ^ __LOC__))
 
-let get_t_record (t:type_expression) : row_element label_map option = match t.type_content with
+let get_t_record (t:type_expression) : ty_expr row_element label_map option = match t.type_content with
   | T_record m -> Some m
   | _ -> None
 
@@ -270,7 +271,7 @@ let e_lambda l : expression_content = E_lambda l
 let e_pair a b : expression_content = ez_e_record [(Label "0",a);(Label "1", b)]
 let e_application lamb args : expression_content = E_application {lamb;args}
 let e_variable v : expression_content = E_variable v
-let e_let_in let_binder inline rhs let_result = E_let_in { let_binder ; rhs ; let_result; inline }
+let e_let_in let_binder inline rhs let_result = E_let_in { let_binder ; rhs ; let_result; attributes={inline} }
 
 let e_constructor constructor element: expression_content = E_constructor {constructor;element}
 

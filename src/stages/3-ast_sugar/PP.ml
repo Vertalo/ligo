@@ -107,7 +107,7 @@ and expression_content ppf (ec : expression_content) =
   | E_tuple t ->
       fprintf ppf "(%a)" (list_sep_d expression) t
 
-and binder ppf (a,b) = fprintf ppf "(%a,%a)" expression_variable a type_expression b
+and binder ppf {var;ty} = fprintf ppf "(%a,%a)" expression_variable var type_expression ty
 
 and accessor ppf a =
   match a with
@@ -136,7 +136,7 @@ and matching : (formatter -> expression -> unit) -> formatter -> matching_expr -
     | Match_tuple (lst,b) ->
         fprintf ppf "(%a) -> %a" (list_sep_d binder) lst f b
     | Match_record (lst,b) ->
-        fprintf ppf "{%a} -> %a" (list_sep_d (fun ppf (a,b,_) -> fprintf ppf "%a = %a" label a expression_variable b)) lst f b
+        fprintf ppf "{%a} -> %a" (list_sep_d (fun ppf (a,b) -> fprintf ppf "%a = %a" label a binder b)) lst f b
     | Match_variable (a,b) ->
         fprintf ppf "%a -> %a" binder a f b
 
@@ -175,8 +175,10 @@ let declaration ppf (d : declaration) =
   | Declaration_type (type_name, te) ->
       fprintf ppf "type %a = %a" type_variable type_name type_expression te
   | Declaration_constant (name, ty_opt, i, expr) ->
-      fprintf ppf "const %a = %a%a" binder (name, ty_opt) expression
-        expr
+      fprintf ppf "const %a : %a = %a%a" 
+        expression_variable name
+        type_expression ty_opt
+        expression expr
         option_inline i
 
 let program ppf (p : program) =

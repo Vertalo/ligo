@@ -188,7 +188,7 @@ let rec compile_type (t:AST.type_expression) : (type_expression, spilling_error)
         ok (None, t)
       in
       let%bind m' = Append_tree.fold_ne
-                      (fun (_, ({associated_type ; michelson_annotation}: AST.row_element)) ->
+                      (fun (_, ({associated_type ; michelson_annotation}: _ AST.row_element)) ->
                         let%bind a = compile_type associated_type in
                         ok (Ast_typed.Helpers.remove_empty_annotation michelson_annotation, a) )
                       aux node in
@@ -202,7 +202,7 @@ let rec compile_type (t:AST.type_expression) : (type_expression, spilling_error)
         ok (None, t)
       in
       let%bind m' = Append_tree.fold_ne
-                      (fun (Label ann, ({associated_type ; _}: AST.row_element)) ->
+                      (fun (Label ann, ({associated_type ; _}: _ AST.row_element)) ->
                         let%bind a = compile_type associated_type in
                         ok (Some (String.uncapitalize_ascii ann), a))
                       aux node in
@@ -216,7 +216,7 @@ let rec compile_type (t:AST.type_expression) : (type_expression, spilling_error)
         ok (None, t)
       in
       let%bind m' = Append_tree.fold_ne
-                      (fun (_, ({associated_type ; michelson_annotation} : AST.row_element)) ->
+                      (fun (_, ({associated_type ; michelson_annotation} : _ AST.row_element)) ->
                         let%bind a = compile_type associated_type in
                         ok (Ast_typed.Helpers.remove_empty_annotation michelson_annotation, a) )
                       aux node in
@@ -237,7 +237,7 @@ let rec compile_type (t:AST.type_expression) : (type_expression, spilling_error)
         ok (None, t)
       in
       let%bind m' = Append_tree.fold_ne
-                      (fun (Label ann, ({associated_type;_}: AST.row_element)) ->
+                      (fun (Label ann, ({associated_type;_}: _ AST.row_element)) ->
                         let%bind a = compile_type associated_type in
                         ok ((if is_tuple_lmap then 
                               None 
@@ -291,7 +291,7 @@ and tree_of_sum : AST.type_expression -> ((AST.label * AST.type_expression) Appe
   let%bind map_tv =
     trace_option (corner_case ~loc:__LOC__ "getting lr tree") @@
     get_t_sum t in
-  let kt_list = List.map (fun (k,({associated_type;_}:AST.row_element)) -> (k,associated_type)) (kv_list_of_lmap map_tv) in
+  let kt_list = List.map (fun (k,({associated_type;_}:_ AST.row_element)) -> (k,associated_type)) (kv_list_of_lmap map_tv) in
   ok @@ Append_tree.of_list kt_list
 
 and compile_expression (ae:AST.expression) : (expression , spilling_error) result =
@@ -299,7 +299,7 @@ and compile_expression (ae:AST.expression) : (expression , spilling_error) resul
   let return ?(tv = tv) expr = ok @@ Combinators.Expression.make_tpl ~loc:ae.location (expr, tv) in
   trace (translation_tracer ae.location) @@
   match ae.expression_content with
-  | E_let_in {let_binder; rhs; let_result; inline} ->
+  | E_let_in {let_binder; rhs; let_result; attributes={inline}} ->
     let%bind rhs' = compile_expression rhs in
     let%bind result' = compile_expression let_result in
     return (E_let_in ((Location.map Var.todo_cast let_binder, rhs'.type_expression), inline, rhs', result'))
@@ -575,7 +575,7 @@ and compile_recursive {fun_name; fun_type; lambda} =
         let%bind let_result = replace_callback fun_name loop_type shadowed li.let_result in
         let%bind rhs = compile_expression li.rhs in
         let%bind ty  = compile_type e.type_expression in
-        ok @@ e_let_in (Location.map Var.todo_cast li.let_binder) ty li.inline rhs let_result |
+        ok @@ e_let_in (Location.map Var.todo_cast li.let_binder) ty li.attributes.inline rhs let_result |
       E_matching m -> 
         let%bind ty = compile_type e.type_expression in
         matching fun_name loop_type shadowed m ty |

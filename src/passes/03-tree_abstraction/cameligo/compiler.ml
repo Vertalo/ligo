@@ -297,17 +297,17 @@ let rec compile_expression : CST.expr -> (AST.expr , abs_error) result = fun e -
         [] -> body,lhs_type
       | (binder,exprs):: lst ->
         let expr,lhs_type = aux lst in
-        let aux expr (binder, ty_opt ,attr,rhs) = e_let_in (binder,ty_opt) attr rhs expr in
+        let aux expr (var, ty ,attr,rhs) = e_let_in {var;ty} attr rhs expr in
         let expr = List.fold_left aux expr exprs in
         let expr = (match lhs_type with
           Some ty -> e_annotation ~loc expr ty
         | None    -> expr
         ) in
         e_lambda ~loc binder expr,
-        Option.map (t_function ~loc @@ snd binder) @@ lhs_type
+        Option.map (t_function ~loc @@ binder.ty) @@ lhs_type
     in
     let expr,lhs_type = aux lst in
-    let aux (binder, ty_opt,attr,rhs) expr = e_let_in (binder, ty_opt) attr rhs expr in
+    let aux (var,ty,attr,rhs) expr = e_let_in {var;ty} attr rhs expr in
     let expr = List.fold_right aux exprs expr  in
     return @@ e_lambda ~loc binder @@
       (match lhs_type with
@@ -365,7 +365,7 @@ let rec compile_expression : CST.expr -> (AST.expr , abs_error) result = fun e -
     let ({kwd_rec;binding;body;attributes;_} : CST.let_in) = li in
     let%bind lst = compile_let_binding ?kwd_rec attributes binding in
     let%bind body = compile_expression body in
-    let aux (binder,ty,attr,rhs) expr = e_let_in ~loc (binder,ty) attr rhs expr in
+    let aux (var,ty,attr,rhs) expr = e_let_in ~loc {var;ty} attr rhs expr in
     return @@ List.fold_right aux lst body
   | ECodeInj ci ->
     let (ci, loc) = r_split ci in
@@ -446,7 +446,7 @@ fun cases ->
   | (PVar var, expr), [] ->
     let (var, loc) = r_split var in
     let var = Location.wrap ~loc @@ Var.of_name var in
-    let binder = (var, t_wildcard ~loc ()) in
+    let binder = {var; ty=t_wildcard ~loc ()} in
     return @@ AST.Match_variable (binder, expr)
   | (PTuple tuple, _expr), [] ->
     fail @@ unsupported_pattern_type @@ [CST.PTuple tuple]
@@ -477,15 +477,15 @@ and compile_let_binding ?kwd_rec attributes binding =
       match lst with
         [] -> expr,lhs_type
       | (binder,exprs):: lst ->
-        let loc = Location.get_location @@ fst binder in
+        let loc = Location.get_location @@ binder.var in
         let expr,lhs_type = aux lst in
-        let aux expr (binder, ty_opt ,attr,rhs) = e_let_in (binder,ty_opt) attr rhs expr in
+        let aux expr (var, ty ,attr,rhs) = e_let_in {var;ty} attr rhs expr in
         let expr = List.fold_left aux expr exprs in
         let expr = match lhs_type with 
           Some ty -> e_annotation ~loc expr ty
         | None -> expr in
         e_lambda ~loc binder expr,
-        Option.map (t_function ~loc @@ snd binder) @@ lhs_type
+        Option.map (t_function ~loc @@ binder.ty) @@ lhs_type
     in
     let expr,lhs_type = aux args in
     (* This handle the recursion *)
@@ -506,7 +506,7 @@ and compile_let_binding ?kwd_rec attributes binding =
     let exprs = List.flatten @@ List.Ne.to_list exprs in
     let var = Location.wrap ~loc @@ Var.fresh () in
     let body = e_variable var in
-    let aux i (var, ty_opt) = Z.add i Z.one, (var,ty_opt, attr, e_accessor body @@ [Access_tuple i]) in
+    let aux i {var; ty} = Z.add i Z.one, (var,ty, attr, e_accessor body @@ [Access_tuple i]) in
     return @@ (var,t_wildcard (), false, expr) :: (List.fold_map aux Z.zero @@ List.Ne.to_list lst) @ exprs
   | _ -> fail @@ unsupported_pattern_type @@ nseq_to_list binders
   in aux binders
@@ -514,7 +514,7 @@ and compile_let_binding ?kwd_rec attributes binding =
 and compile_parameter : CST.pattern -> _ result = fun pattern ->
   let return ?ty loc exprs var = 
     let ty = Option.unopt ~default:(t_wildcard ()) ty in
-    ok ((Location.wrap ~loc var, ty), exprs) in
+    ok ({var=Location.wrap ~loc var; ty}, exprs) in
   match pattern with
     PConstr _ -> fail @@ unsupported_pattern_type [pattern]
   | PUnit the_unit  ->
@@ -531,27 +531,27 @@ and compile_parameter : CST.pattern -> _ result = fun pattern ->
     let%bind lst = bind_map_ne_list compile_parameter @@ npseq_to_ne_list tuple in
     let (binder,exprs) = List.Ne.split lst in
     let var, ty, expr = match binder with
-      (var, ty), [] -> 
+      {var; ty}, [] -> 
       Location.unwrap var, ty, []
     | var, lst ->
       let binder = Var.fresh () in
-      let aux i (var,ty) = Z.add i Z.one, (var,ty, false, e_accessor (e_variable @@ Location.wrap ~loc binder) @@ [Access_tuple i]) in
+      let aux i {var;ty} = Z.add i Z.one, (var,ty, false, e_accessor (e_variable @@ Location.wrap ~loc binder) @@ [Access_tuple i]) in
       binder, 
-      t_tuple ~loc @@ snd var::(List.map snd lst),
+      t_tuple ~loc @@ List.map (fun e -> e.ty) @@ var::lst,
       List.fold_map aux Z.zero @@ var :: lst
     in
     let exprs = List.flatten @@ expr :: List.Ne.to_list exprs in
     return ~ty loc exprs @@ var 
   | PPar par ->
     let (par,loc) = r_split par in
-    let%bind ((var,ty), expr) = compile_parameter par.inside in
+    let%bind ({var;ty}, expr) = compile_parameter par.inside in
     return ~ty loc expr @@ Location.unwrap var
   | PRecord _ -> fail @@ unsupported_pattern_type [pattern]
   | PTyped tp ->
     let (tp, loc) = r_split tp in
     let {pattern; type_expr} : CST.typed_pattern = tp in
     let%bind ty = compile_type_expression type_expr in
-    let%bind ((var, _), exprs) = compile_parameter pattern in
+    let%bind ({var; _}, exprs) = compile_parameter pattern in
     return ~ty loc exprs @@ Location.unwrap var
   | _ -> fail @@ unsupported_pattern_type [pattern]
 

@@ -114,7 +114,7 @@ let get_e_tuple : AST.expression -> _ result = fun expr ->
     Format.asprintf "%a should be a tuple expression"
     AST.PP.expression expr
 
-let pattern_type ((var: 'a Location.wrap),ty) =
+let pattern_type ({var;ty}: _ AST.binder) =
   let var = CST.PVar (decompile_variable var.wrap_content) in
   let%bind type_expr = decompile_type_expr ty in
   ok @@ CST.PTyped (wrap @@ CST.{pattern=var;colon=rg;type_expr})
@@ -189,10 +189,10 @@ let rec decompile_expression : AST.expression -> _ result = fun expr ->
     return_expr_with_par @@ CST.EFun (wrap @@ fun_expr)
   | E_recursive _ ->
     failwith "corner case : annonymous recursive function"
-  | E_let_in {let_binder;rhs;let_result;inline} ->
-    let var = CST.PVar (decompile_variable @@ (fst let_binder).wrap_content) in
+  | E_let_in {let_binder={var;ty};rhs;let_result;inline} ->
+    let var = CST.PVar (decompile_variable @@ var.wrap_content) in
     let binders = (var,[]) in
-    let%bind lhs_type = (bind_compose (ok <@ prefix_colon) decompile_type_expr) @@ snd let_binder in
+    let%bind lhs_type = (bind_compose (ok <@ prefix_colon) decompile_type_expr) ty in
     let lhs_type = Some lhs_type in
     let%bind let_rhs = decompile_expression rhs in
     let binding : CST.let_binding = {binders;lhs_type;eq=rg;let_rhs} in
@@ -378,7 +378,7 @@ let rec decompile_expression : AST.expression -> _ result = fun expr ->
     failwith @@ Format.asprintf "Decompiling a imperative construct to CameLIGO %a"
     AST.PP.expression expr
 
-and decompile_to_path : AST.expression_variable -> AST.access list -> (CST.path, _) result = fun var access ->
+and decompile_to_path : AST.expression_variable -> _ AST.access list -> (CST.path, _) result = fun var access ->
   let struct_name = decompile_variable var.wrap_content in
   match access with
     [] -> ok @@ CST.Name struct_name
@@ -387,7 +387,7 @@ and decompile_to_path : AST.expression_variable -> AST.access list -> (CST.path,
     let path : CST.projection = {struct_name;selector=rg;field_path} in
     ok @@ (CST.Path (wrap @@ path) : CST.path)
 
-and decompile_to_selection : AST.access -> (CST.selection, _) result = fun access ->
+and decompile_to_selection : _ AST.access -> (CST.selection, _) result = fun access ->
   match access with
     Access_tuple index -> ok @@ CST.Component (wrap @@ ("",index))
   | Access_record str  -> ok @@ CST.FieldName (wrap str)
@@ -395,7 +395,7 @@ and decompile_to_selection : AST.access -> (CST.selection, _) result = fun acces
     failwith @@ Format.asprintf
     "Can't decompile access_map to selection"
 
-and decompile_lambda : AST.lambda -> _ = fun {binder;result} ->
+and decompile_lambda : (AST.expr,AST.ty_expr) AST.lambda -> _ = fun {binder;result} ->
     let%bind param_decl = pattern_type binder in
     let param = (param_decl, []) in
     let%bind result,ret_type = match result.expression_content with 

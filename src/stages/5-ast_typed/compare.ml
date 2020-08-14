@@ -64,6 +64,9 @@ and arrow {type1=ta1;type2=tb1} {type1=ta2;type2=tb2} =
 let binder (va,ta) (vb,tb) =
   cmp2 expression_variable va vb type_expression ta tb
 
+let attribute ({inline=ia} : attribute) ({inline=ib} : attribute) =
+  bool ia ib
+
 let expression_tag expr =
   match expr.expression_content with
     E_literal         _ -> 1
@@ -116,12 +119,12 @@ and recursive ({fun_name=fna;fun_type=fta;lambda=la}) {fun_name=fnb;fun_type=ftb
     type_expression     fta ftb
     lambda               la  lb
 
-and let_in {let_binder=ba;rhs=ra;let_result=la;inline=ia} {let_binder=bb;rhs=rb;let_result=lb;inline=ib} =
+and let_in {let_binder=ba;rhs=ra;let_result=la;attributes=aa} {let_binder=bb;rhs=rb;let_result=lb;attributes=ab} =
   cmp4
     expression_variable ba bb
     expression ra rb
     expression la lb
-    bool ia ib
+    attribute  aa ab
 
 and raw_code {language=la;code=ca} {language=lb;code=cb} =
   cmp2

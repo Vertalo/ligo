@@ -103,7 +103,7 @@ and evaluate_type (e:environment) (t:I.type_expression) : (O.type_expression, ty
       let%bind type2 = evaluate_type e type2 in
       return (T_arrow {type1;type2})
   | T_sum m ->
-      let aux prev k ({associated_type;michelson_annotation;decl_pos} : I.row_element) =
+      let aux prev k ({associated_type;michelson_annotation;decl_pos} :_ I.row_element) =
         let%bind associated_type = evaluate_type e associated_type in
         let%bind () = match Environment.get_constructor k e with
         | Some _ ->
@@ -111,15 +111,15 @@ and evaluate_type (e:environment) (t:I.type_expression) : (O.type_expression, ty
             ok ()
           else fail (redundant_constructor e k t.location)
         | None -> ok () in
-        let v' : O.row_element = {associated_type;michelson_annotation;decl_pos} in
+        let v' : _ O.row_element = {associated_type;michelson_annotation;decl_pos} in
         ok @@ O.LMap.add k v' prev
       in  
       let%bind m = Stage_common.Helpers.bind_fold_lmap aux O.LMap.empty m in
       return (T_sum m)
   | T_record m ->
-      let aux ({associated_type;michelson_annotation;decl_pos}: I.row_element) =
+      let aux ({associated_type;michelson_annotation;decl_pos}:_ I.row_element) =
         let%bind associated_type = evaluate_type e associated_type in
-        ok @@ ({associated_type;michelson_annotation;decl_pos} : O.row_element)
+        ok @@ ({associated_type;michelson_annotation;decl_pos} :_ O.row_element)
       in
       let%bind m = Stage_common.Helpers.bind_map_lmap aux m in
       return (T_record m)
@@ -131,7 +131,7 @@ and evaluate_type (e:environment) (t:I.type_expression) : (O.type_expression, ty
       ok tv
   | T_wildcard ->
     return @@ T_wildcard
-  | T_constant {type_constant; arguments} ->
+  | T_constant (type_constant, arguments) ->
     let assert_constant lst = match lst with
       [] -> ok () 
     | _ -> fail @@ type_constant_wrong_number_of_arguments type_constant 0 (List.length lst) t.location
@@ -270,7 +270,7 @@ and type_expression' : environment -> ?tv_opt:O.type_expression -> I.expression 
     let%bind expr' = type_expression' e element in
     ( match t.type_content with
       | T_sum c ->
-        let {associated_type ; _} : O.row_element = O.LMap.find (Label s) c in
+        let {associated_type ; _} :_ O.row_element = O.LMap.find (Label s) c in
         let%bind () = assert_type_expression_eq (expr'.type_expression, associated_type) in
         return (E_constructor {constructor = Label s; element=expr'}) t
       | _ -> fail (michelson_or (Label s) ae.location)
@@ -286,7 +286,7 @@ and type_expression' : environment -> ?tv_opt:O.type_expression -> I.expression 
   (* Record *)
   | E_record m ->
       let%bind m' = Stage_common.Helpers.bind_map_lmap (type_expression' e) m in
-      let lmap = O.LMap.map (fun e -> ({associated_type = get_type_expression e; michelson_annotation = None; decl_pos=0}:O.row_element)) m' in
+      let lmap = O.LMap.map (fun e -> ({associated_type = get_type_expression e; michelson_annotation = None; decl_pos=0}:_ O.row_element)) m' in
       return (E_record m') (t_record lmap ())
   | E_record_update {record; path; update} ->
     let%bind record = type_expression' e record in
@@ -449,7 +449,7 @@ and type_expression' : environment -> ?tv_opt:O.type_expression -> I.expression 
     let binder = cast_var var in
     let e' = Environment.add_ez_declaration binder rhs e in
     let%bind let_result = type_expression' e' let_result in
-    return (E_let_in {let_binder = binder; rhs; let_result; inline}) let_result.type_expression
+    return (E_let_in {let_binder = binder; rhs; let_result; attributes={inline}}) let_result.type_expression
   | E_raw_code {language;code} ->
     let%bind (code,type_expression) = trace_option (expected_ascription code) @@
       I.get_e_ascription code.content in
@@ -567,7 +567,7 @@ let rec untype_expression (e:O.expression) : (I.expression , typer_error) result
       let%bind ae' = untype_expression matchee in
       let%bind m' = untype_matching untype_expression cases in
       return (e_matching ae' m')
-  | E_let_in {let_binder;rhs;let_result; inline} ->
+  | E_let_in {let_binder;rhs;let_result; attributes={inline}} ->
       let var = cast_var let_binder in
       let%bind ty = untype_type_expression rhs.type_expression in
       let%bind rhs = untype_expression rhs in

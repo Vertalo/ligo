@@ -104,7 +104,7 @@ and expression_content ppf (ec: expression_content) =
         expression result
   | E_matching {matchee; cases;} ->
       fprintf ppf "match %a with %a" expression matchee (matching expression) cases
-  | E_let_in {let_binder; rhs; let_result; inline} ->
+  | E_let_in {let_binder; rhs; let_result; attributes={inline}} ->
       fprintf ppf "let %a = %a%a in %a" expression_variable let_binder expression
         rhs option_inline inline expression let_result
   | E_raw_code {language; code} ->

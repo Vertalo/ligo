@@ -2,49 +2,38 @@ module I = Ast_sugar
 module O = Ast_core
 
 open Trace
+open Stage_common.Passes
 open Errors
 
 let cast_var = Location.map Var.todo_cast
 
 let rec decompile_type_expression : O.type_expression -> (I.type_expression, desugaring_error) result =
   fun te ->
+  let self = decompile_type_expression in
   let return te = ok @@ I.make_t te in
   match te.sugar with 
     Some te -> ok @@ te
   | None ->
     match te.type_content with
+      | O.T_variable type_variable -> return @@ T_variable (Var.todo_cast type_variable)
+      | O.T_constant (type_constant , arguments ) ->
+        let%bind lst = bind_map_list self arguments in
+        return @@ T_constant (type_constant, lst)
       | O.T_sum sum -> 
-        let%bind sum = 
-          Stage_common.Helpers.bind_map_lmap (fun v ->
-            let {associated_type;michelson_annotation;decl_pos} : O.row_element = v in
-            let%bind associated_type = decompile_type_expression associated_type in
-            let v' : I.row_element = {associated_type;michelson_annotation;decl_pos} in
-            ok @@ v'
-          ) sum
-        in
+        let%bind sum = row self sum in
         return @@ I.T_sum sum
       | O.T_record record -> 
-        let%bind record = 
-          Stage_common.Helpers.bind_map_lmap (fun v ->
-            let {associated_type;michelson_annotation;decl_pos} : O.row_element = v in
-            let%bind associated_type = decompile_type_expression associated_type in
-            let v' : I.row_element = {associated_type ; michelson_annotation=michelson_annotation ; decl_pos} in
-            ok @@ v'
-          ) record
-        in
+        let%bind record = row self record in
         return @@ I.T_record record
-      | O.T_arrow {type1;type2} ->
-        let%bind type1 = decompile_type_expression type1 in
-        let%bind type2 = decompile_type_expression type2 in
-        return @@ T_arrow {type1;type2}
-      | O.T_variable type_variable -> return @@ T_variable (Var.todo_cast type_variable)
+      | O.T_arrow arr ->
+        let%bind arr = arrow self arr in
+        return @@ T_arrow arr
       | O.T_wildcard -> return @@ T_wildcard
-      | O.T_constant { type_constant ; arguments } ->
-        let%bind lst = bind_map_list decompile_type_expression arguments in
-        return @@ T_constant (type_constant, lst)
 
 let rec decompile_expression : O.expression -> (I.expression, desugaring_error) result =
   fun e ->
+  let self = decompile_expression in
+  let self_type = decompile_type_expression in
   let return expr = ok @@ I.make_e ~loc:e.location expr in
   match e.sugar with
     Some e -> ok @@ e
@@ -59,16 +48,14 @@ let rec decompile_expression : O.expression -> (I.expression, desugaring_error) 
       let%bind lamb = decompile_expression lamb in
       let%bind args = decompile_expression args in
       return @@ I.E_application {lamb; args}
-    | O.E_lambda lambda ->
-      let%bind lambda = decompile_lambda lambda in
-      return @@ I.E_lambda lambda
-    | O.E_recursive {fun_name;fun_type;lambda} ->
-      let fun_name = cast_var fun_name in
-      let%bind fun_type = decompile_type_expression fun_type in
-      let%bind lambda = decompile_lambda lambda in
-      return @@ I.E_recursive {fun_name;fun_type;lambda}
+    | O.E_lambda lamb ->
+      let%bind lamb = lambda self self_type lamb in
+      return @@ I.E_lambda lamb
+    | O.E_recursive recs ->
+      let%bind recs = recursive self self_type recs in
+      return @@ I.E_recursive recs
     | O.E_let_in {let_binder ;inline;rhs;let_result} ->
-      let%bind let_binder = decompile_binder let_binder in
+      let%bind let_binder = binder decompile_type_expression let_binder in
       let%bind rhs = decompile_expression rhs in
       let%bind let_result = decompile_expression let_result in
       return @@ I.E_let_in {let_binder;mut=false;inline;rhs;let_result}
@@ -105,16 +92,6 @@ let rec decompile_expression : O.expression -> (I.expression, desugaring_error) 
       let%bind type_annotation = decompile_type_expression type_annotation in
       return @@ I.E_ascription {anno_expr; type_annotation}
 
-and decompile_binder : O.binder -> _ result = fun {var; ty} ->
-  let var = cast_var var in
-  let%bind ty = decompile_type_expression ty in
-  ok (var,ty)
-
-and decompile_lambda : O.lambda -> (I.lambda, desugaring_error) result =
-  fun {binder;result}->
-    let%bind binder = decompile_binder binder in
-    let%bind result = decompile_expression result in
-    ok @@ I.{binder;result}
 and decompile_matching : O.matching_expr -> (I.matching_expr, desugaring_error) result =
   fun m -> 
   match m with 
@@ -141,10 +118,10 @@ and decompile_matching : O.matching_expr -> (I.matching_expr, desugaring_error) 
 let decompile_declaration : O.declaration Location.wrap -> _ result = fun {wrap_content=declaration;location} ->
   let return decl = ok @@ Location.wrap ~loc:location decl in
   match declaration with 
-  | O.Declaration_constant {binder ; attr={inline}; expr} ->
-    let%bind (binder,ty) = decompile_binder binder in
+  | O.Declaration_constant {binder=b ; attr={inline}; expr} ->
+    let%bind {var;ty} = binder decompile_type_expression b in
     let%bind expr = decompile_expression expr in
-    return @@ I.Declaration_constant (binder, ty, inline, expr)
+    return @@ I.Declaration_constant (var, ty, inline, expr)
   | O.Declaration_type {type_binder ; type_expr} ->
     let type_binder = Var.todo_cast type_binder in
     let%bind te = decompile_type_expression type_expr in

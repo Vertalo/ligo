@@ -1,7 +1,7 @@
 [@@@warning "-30"]
 
-open Types_utils
-include Stage_common.Enums (*@ follow ../common/enums.ml *)
+open Simple_utils.Function
+include Stage_common.Types
 
 (* pseudo-typeclasses: interfaces that must be provided for arguments
    of the givent polymmorphic types. For now, only one typeclass can
@@ -9,8 +9,10 @@ include Stage_common.Enums (*@ follow ../common/enums.ml *)
    provided by the Comparable module *)
 (*@ typeclass poly_unionfind comparable *)
 (*@ typeclass poly_set       comparable *)
+type ast_core_type_expression = Ast_core.type_expression
+  [@@deriving yojson]
 
-type te_lmap = row_element label_map
+type te_lmap = ty_expr row_element label_map
   [@@deriving yojson]
 and type_meta = ast_core_type_expression option
   [@@deriving yojson]
@@ -18,17 +20,11 @@ and type_meta = ast_core_type_expression option
 and type_content =
   | T_sum of te_lmap
   | T_record of te_lmap
-  | T_arrow of arrow
+  | T_arrow of ty_expr arrow
   | T_variable of type_variable
   (* TODO: remove this when we remove the old typer *)
   | T_wildcard
   | T_constant of type_operator
-  [@@deriving yojson]
-
-and arrow = {
-    type1: type_expression;
-    type2: type_expression;
-  }
   [@@deriving yojson]
 
 and te_list = type_expression list
@@ -37,16 +33,6 @@ and type_operator = {
     type_constant : type_constant;
     arguments     : te_list;
   }
-  [@@deriving yojson]
-
-and annot_option = string option
-  [@@deriving yojson]
-
-and row_element = {
-    associated_type : type_expression;
-    michelson_annotation : annot_option;
-    decl_pos : int;
-}
   [@@deriving yojson]
 
 and type_map_args = {
@@ -66,6 +52,7 @@ and type_expression = {
     type_meta: type_meta;
     location: location;
   }
+and ty_expr = type_expression
   [@@deriving yojson]
 
 and matching_content_cons = {
@@ -216,7 +203,7 @@ and let_in = {
     let_binder: expression_variable ;
     rhs: expression ;
     let_result: expression ;
-    inline : bool ;
+    attributes: attribute ;
   }
   [@@deriving yojson]
 
@@ -318,6 +305,19 @@ and named_type_content = {
 
 
 (* Solver types *)
+
+type 'a poly_unionfind = 'a UnionFind.Poly2.t
+type 'a poly_set = 'a RedBlackTrees.PolySet.t
+
+(* typevariable: to_string = (fun s -> Format.asprintf "%a" Var.pp s) *)
+(* representant for an equivalence class of type variables *)
+type 'v typeVariableMap = (type_variable, 'v) RedBlackTrees.PolyMap.t
+let typeVariableMap_to_yojson f tvmap = 
+  bindings_to_yojson type_variable_to_yojson f @@ RedBlackTrees.PolyMap.bindings tvmap
+
+let typeVariableMap_of_yojson f tvmap =
+  Stdlib.Result.bind (bindings_of_yojson type_variable_of_yojson f tvmap) 
+    (Stdlib.Option.to_result ~none:"Map with duplicates" <@ RedBlackTrees.PolyMap.from_list ~cmp:compare)
 
 (* typevariable: to_string = (fun s -> Format.asprintf "%a" Var.pp s) *)
 type unionfind = type_variable poly_unionfind

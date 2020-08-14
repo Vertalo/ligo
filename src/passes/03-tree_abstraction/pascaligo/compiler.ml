@@ -291,14 +291,14 @@ let rec compile_expression : CST.expr -> (AST.expr , abs_error) result = fun e -
     let (lambda, fun_type) = match param with
       binder::[] ->
       e_lambda ~loc binder body,
-      Option.map (t_function @@ snd binder) ret_type
+      Option.map (t_function @@ binder.ty) ret_type
     (* Cannot be empty *)
     | lst ->
-      let input_type = t_tuple @@ List.map snd lst in
-      let binder = Location.wrap ?loc:(Some loc_par) @@ Var.fresh ~name:"parameter" () in
-      e_lambda ~loc (binder,input_type) @@
-        e_matching_tuple ~loc:loc_par (e_variable binder) lst body,
-      Option.map (t_function input_type) ret_type
+      let ty = t_tuple @@ List.map (fun e -> e.ty) lst in
+      let var = Location.wrap ?loc:(Some loc_par) @@ Var.fresh ~name:"parameter" () in
+      e_lambda ~loc {var;ty} @@
+        e_matching_tuple ~loc:loc_par (e_variable var) lst body,
+      Option.map (t_function ty) ret_type
     in
     return @@ Option.unopt ~default:lambda @@
       Option.map (e_annotation ~loc lambda) fun_type
@@ -488,7 +488,7 @@ fun compiler cases ->
   | (PVar var, expr), [] ->
     let (var, loc) = r_split var in
     let var = Location.wrap ~loc @@ Var.of_name var in
-    let binder = (var,t_wildcard ~loc ()) in
+    let binder = {var;ty=t_wildcard ~loc ()} in
     return @@ AST.Match_variable (binder, expr)
   | (PTuple tuple, _expr), [] ->
     fail @@ unsupported_pattern_type @@ CST.PTuple tuple
@@ -518,15 +518,15 @@ and compile_param_decl (param : CST.param_decl) =
     let (var, loc) = r_split pc.var in
     let var = Location.wrap ?loc:(Some loc) @@ Var.of_name var in
     let%bind param_type = bind_map_option (compile_type_expression <@ snd) pc.param_type in
-    let param_type = Option.unopt ~default:(t_wildcard ~loc ()) param_type in
-    return (var, param_type)
+    let ty = Option.unopt ~default:(t_wildcard ~loc ()) param_type in
+    return @@ {var; ty}
   | ParamVar pv ->
     let (pv, _loc) = r_split pv in
     let (var, loc) = r_split pv.var in
     let var = Location.wrap ?loc:(Some loc) @@ Var.of_name var in
     let%bind param_type = bind_map_option (compile_type_expression <@ snd) pv.param_type in
-    let param_type = Option.unopt ~default:(t_wildcard ~loc ()) param_type in
-    return (var, param_type)
+    let ty = Option.unopt ~default:(t_wildcard ~loc ()) param_type in
+    return @@ {var; ty}
 
 and compile_instruction : ?next: AST.expression -> CST.instruction -> _ result  = fun ?next instruction ->
   let return expr = match next with 
@@ -703,10 +703,10 @@ and compile_instruction : ?next: AST.expression -> CST.instruction -> _ result  
       e_constant ~loc C_SET_REMOVE [ele;set]
 
 and compile_data_declaration : next:AST.expression -> ?attr:CST.attr_decl -> CST.data_decl -> _ = fun ~next ?attr data_decl ->
-  let return loc name type_ init =
+  let return loc var type_ init =
     let attr = compile_attribute_declaration attr in
-    let type_ = Option.unopt ~default:(t_wildcard ~loc ()) @@ type_ in
-    ok @@ e_let_in ~loc (name,type_) attr init next in
+    let ty = Option.unopt ~default:(t_wildcard ~loc ()) @@ type_ in
+    ok @@ e_let_in ~loc {var;ty} attr init next in
   match data_decl with
     LocalConst const_decl ->
     let (cd, loc) = r_split const_decl in
@@ -767,17 +767,17 @@ and compile_fun_decl ({kwd_recursive; fun_name; param; ret_type; return=r; attri
   (* This handle the parameter case *)
   let (lambda,fun_type) = (match param with
     binder ::[] ->
-    let lambda : AST.lambda = {
+    let lambda : _ AST.lambda = {
       binder;
       result;
     } in
-    lambda,Option.map (t_function @@ snd binder) ret_type
+    lambda,Option.map (t_function binder.ty) ret_type
   | lst ->
-    let input_type = t_tuple @@ List.map snd lst in
-    let binder = Location.wrap @@ Var.fresh ~name:"parameters" (), input_type in
-    let lambda : AST.lambda = {
-      binder;
-      result = e_matching_tuple (e_variable @@ fst binder) lst result;
+    let input_type = t_tuple @@ List.map (fun e -> e.ty) lst in
+    let binder = Location.wrap @@ Var.fresh ~name:"parameters" () in
+    let lambda : _ AST.lambda = {
+      binder = {var=binder;ty=input_type};
+      result = e_matching_tuple (e_variable binder) lst result;
     } in
     lambda,Option.map (t_function input_type) ret_type
   )

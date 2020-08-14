@@ -43,7 +43,7 @@ let t_pair ?loc (a , b) : type_expression = t_record_ez ?loc [
   ("1",{associated_type=b ; michelson_annotation=None ; decl_pos=0})]
 let t_tuple ?loc lst    : type_expression = t_record_ez ?loc (tuple_to_record lst)
 
-let ez_t_sum ?loc (lst:((string * row_element) list)) : type_expression =
+let ez_t_sum ?loc (lst:((string * ty_expr row_element) list)) : type_expression =
   let aux prev (k, v) = LMap.add (Label k) v prev in
   let map = List.fold_left aux LMap.empty lst in
   make_t ?loc @@ T_sum map
@@ -91,8 +91,10 @@ let e_constant ?loc name lst = make_e ?loc @@ E_constant {cons_name=name ; argum
 let e_variable ?loc v = make_e ?loc @@ E_variable v
 let e_application ?loc a b = make_e ?loc @@ E_application {lamb=a ; args=b}
 let e_lambda ?loc binder result : expression = make_e ?loc @@ E_lambda {binder; result}
+let e_lambda_ez ?loc (var,ty) result : expression = e_lambda ?loc {var;ty} result
 let e_recursive ?loc fun_name fun_type lambda = make_e ?loc @@ E_recursive {fun_name; fun_type; lambda}
-let e_let_in ?loc (binder, ascr) mut inline rhs let_result = make_e ?loc @@ E_let_in { let_binder = (binder, ascr) ; rhs ; let_result; inline; mut }
+let e_let_in ?loc let_binder mut inline rhs let_result = make_e ?loc @@ E_let_in { let_binder ; rhs ; let_result; inline; mut }
+let e_let_in_ez ?loc (var,ty) mut inline rhs let_result = e_let_in ?loc {var;ty} mut inline rhs let_result
 let e_raw_code ?loc language code = make_e ?loc @@ E_raw_code {language; code}
 
 let e_constructor ?loc s a : expression = make_e ?loc @@ E_constructor { constructor = s; element = a}

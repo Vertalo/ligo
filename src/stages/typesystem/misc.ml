@@ -87,12 +87,12 @@ module Substitution = struct
       | Ast_core.T_arrow _ -> failwith "TODO: subst: unimplemented case s_type_expression arrow"
       | Ast_core.T_variable _ -> failwith "TODO: subst: unimplemented case s_type_expression variable"
       | Ast_core.T_wildcard -> failwith "TODO: subst: unimplemented case s_type_expression wildcard"
-      | Ast_core.T_constant {type_constant;arguments} ->
+      | Ast_core.T_constant (type_constant,arguments) ->
          let%bind arguments = bind_map_list
              (s_abstr_type_expression ~substs)
              arguments in
          (* TODO: when we have generalized operators, we might need to subst the operator name itself? *)
-         ok @@ Ast_core.T_constant {type_constant;arguments}
+         ok @@ Ast_core.T_constant (type_constant,arguments)
 
     and s_abstr_type_expression : (Ast_core.type_expression,_) w = fun ~substs {type_content;sugar;location} ->
       let%bind type_content = s_abstr_type_content ~substs type_content in
@@ -145,11 +145,11 @@ module Substitution = struct
         let%bind binder = s_variable ~substs binder in
         let%bind result = s_expression ~substs result in
         ok @@ T.E_lambda { binder; result }
-      | T.E_let_in          { let_binder; rhs; let_result; inline } ->
+      | T.E_let_in          { let_binder; rhs; let_result; attributes={inline}} ->
         let%bind let_binder = s_variable ~substs let_binder in
         let%bind rhs = s_expression ~substs rhs in
         let%bind let_result = s_expression ~substs let_result in
-        ok @@ T.E_let_in { let_binder; rhs; let_result; inline }
+        ok @@ T.E_let_in { let_binder; rhs; let_result; attributes={inline}}
       | T.E_raw_code {language; code} ->
         let%bind code = s_expression ~substs code in
         ok @@ T.E_raw_code {language; code}

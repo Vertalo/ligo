@@ -54,17 +54,17 @@ and evaluate_type : environment -> I.type_expression -> (O.type_expression, type
     return (T_arrow {type1;type2})
   | T_sum m ->
     let aux v =
-      let {associated_type ; michelson_annotation ; decl_pos} : I.row_element = v in
+      let {associated_type ; michelson_annotation ; decl_pos} : _ I.row_element = v in
       let%bind associated_type = evaluate_type e associated_type in
-      ok @@ ({associated_type ; michelson_annotation ; decl_pos}:O.row_element)
+      ok @@ ({associated_type ; michelson_annotation ; decl_pos}:_ O.row_element)
     in
     let%bind m = Stage_common.Helpers.bind_map_lmap aux m in
     return (T_sum m)
   | T_record m ->
     let aux v =
-      let {associated_type ; michelson_annotation ; decl_pos} : I.row_element = v in
+      let {associated_type ; michelson_annotation ; decl_pos} : _ I.row_element = v in
       let%bind associated_type = evaluate_type e associated_type in
-      ok @@ ({associated_type ; michelson_annotation ; decl_pos}:O.row_element)
+      ok @@ ({associated_type ; michelson_annotation ; decl_pos}:_ O.row_element)
     in
     let%bind m = Stage_common.Helpers.bind_map_lmap aux m in
     return (T_record m)
@@ -75,7 +75,7 @@ and evaluate_type : environment -> I.type_expression -> (O.type_expression, type
     @@ Environment.get_type_opt (name) e
   | T_wildcard ->
     return @@ T_variable (Var.fresh ())
-  | T_constant {type_constant; arguments} ->
+  | T_constant (type_constant, arguments) ->
     let assert_constant lst = match lst with
       [] -> ok () 
     | _ -> fail @@ type_constant_wrong_number_of_arguments type_constant 0 (List.length lst) t.location
@@ -265,7 +265,7 @@ and type_expression : ?tv_opt:O.type_expression -> environment -> _ O'.typer_sta
     let aux state _ expr = type_expression e state expr in
     let%bind (state', m') = Stage_common.Helpers.bind_fold_map_lmap aux state m in
     (* Do we need row_element for AST_typed ? *)
-    let wrapped = Wrap.record (O.LMap.map (fun e -> ({associated_type = get_type_expression e ; michelson_annotation = None ; decl_pos = 0}: O.row_element)) m') in
+    let wrapped = Wrap.record (O.LMap.map (fun e -> ({associated_type = get_type_expression e ; michelson_annotation = None ; decl_pos = 0}:_ O.row_element)) m') in
     return_wrapped (E_record m') state' wrapped
 
   | E_record_accessor {record;path} -> (
@@ -302,7 +302,7 @@ and type_expression : ?tv_opt:O.type_expression -> environment -> _ O'.typer_sta
     let%bind (state'', let_result) = type_expression e' state' let_result in
     let wrapped =
       Wrap.let_in rhs.type_expression rhs_tv_opt let_result.type_expression in
-    return_wrapped (E_let_in {let_binder; rhs; let_result; inline}) state'' wrapped
+    return_wrapped (E_let_in {let_binder; rhs; let_result; attributes={inline}}) state'' wrapped
 
   | E_recursive {fun_name;fun_type;lambda} ->
     (* Add the function name to the environment before evaluating the lambda*)

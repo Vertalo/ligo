@@ -5,7 +5,7 @@ module SMap = Map.String
 
 let make_t ?(loc = Location.generated) type_content = {type_content; location=loc}
 
-let t_constant ?loc constant lst  : type_expression = make_t ?loc @@ T_constant (constant, lst)
+let t_constant ?loc type_constant arguments  : type_expression = make_t ?loc @@ T_constant (type_constant, arguments)
 
 let t_bool ?loc ()        : type_expression = make_t ?loc @@ T_variable (Stage_common.Constant.t_bool)
 let t_string ?loc ()      : type_expression = t_constant ?loc TC_string []
@@ -28,18 +28,18 @@ let t_wildcard ?loc ()    : type_expression = make_t ?loc @@ T_wildcard
 
 let t_record ?loc record  : type_expression = make_t ?loc @@ T_record record
 let t_record_ez ?loc lst =
-  let lst = List.mapi (fun i (k, v) -> (Label k, {associated_type=v;decl_pos=i})) lst in
+  let lst = List.mapi (fun i (k, v) -> (Label k, {associated_type=v;michelson_annotation=None;decl_pos=i})) lst in
   let record = LMap.of_list lst in
-  t_record ?loc (record:row_element label_map)
+  t_record ?loc (record: ty_expr row_element label_map)
 
 let t_tuple ?loc lst    : type_expression = make_t ?loc @@ T_tuple lst
 let t_pair ?loc (a , b) : type_expression = t_tuple ?loc [a; b]
 
 let t_sum ?loc sum : type_expression = make_t ?loc @@ T_sum sum
 let t_sum_ez ?loc (lst:(string * type_expression) list) : type_expression =
-  let aux (prev,i) (k, v) = (LMap.add (Label k) {associated_type=v;decl_pos=i} prev, i+1) in
-  let (map,_) = List.fold_left aux (LMap.empty,0) lst in
-  t_sum ?loc (map: row_element label_map)
+  let lst = List.mapi (fun i (k, v) -> (Label k, {associated_type=v;michelson_annotation=None;decl_pos=i})) lst in
+  let map = LMap.of_list lst in
+  t_sum ?loc (map: ty_expr row_element label_map)
 
 let t_annoted ?loc ty str : type_expression = make_t ?loc @@ T_annoted (ty, str)
 
@@ -132,9 +132,9 @@ let e_set ?loc lst : expression = make_e ?loc @@ E_set lst
 let e_map ?loc lst : expression = make_e ?loc @@ E_map lst
 let e_big_map ?loc lst : expression = make_e ?loc @@ E_big_map lst
 
-let e_while ?loc condition body = make_e ?loc @@ E_while {condition; body}
-let e_for ?loc binder start final increment body = make_e ?loc @@ E_for {binder;start;final;increment;body}
-let e_for_each ?loc binder collection collection_type body = make_e ?loc @@ E_for_each {binder;collection;collection_type;body}
+let e_while ?loc cond body = make_e ?loc @@ E_while {cond; body}
+let e_for ?loc binder start final incr f_body = make_e ?loc @@ E_for {binder;start;final;incr;f_body}
+let e_for_each ?loc fe_binder collection collection_type fe_body = make_e ?loc @@ E_for_each {fe_binder;collection;collection_type;fe_body}
 
 (* let e_for_ez ?loc binder start final increment body = e_for ?loc (Var.of_name binder) start final increment body *)
 (* let e_for_each_ez ?loc (b,bo) collection collection_type body = e_for_each ?loc (Var.of_name b, Option.map Var.of_name bo) collection collection_type body *)

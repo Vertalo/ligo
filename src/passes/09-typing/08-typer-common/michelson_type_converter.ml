@@ -12,18 +12,18 @@ let field_checks kvl loc =
     (not all_undefined) in
   ok ()
 
-let annotate_field (field:row_element) (ann:string) : row_element =
+let annotate_field (field: ty_expr row_element) (ann:string) : ty_expr row_element =
   {field with michelson_annotation=Some ann}
 
 
-let comb_pair (t:type_content) : row_element =
+let comb_pair (t:type_content) : ty_expr row_element =
   let associated_type = {
     type_content = t ;
     type_meta = None ;
     location = Location.generated ; } in
   {associated_type ; michelson_annotation = Some "" ; decl_pos = 0}
 
-let comb_ctor (t:type_content) : row_element =
+let comb_ctor (t:type_content) : ty_expr row_element =
   let associated_type = {
     type_content = t ;
     type_meta = None ;
@@ -82,7 +82,7 @@ let rec to_left_comb_variant' first l new_map =
     to_left_comb_variant' first tl new_map'
 let to_left_comb_variant = to_left_comb_variant' true
 
-let rec from_right_comb_pair (l:row_element label_map) (size:int) : (row_element list , typer_error) result =
+let rec from_right_comb_pair (l:ty_expr row_element label_map) (size:int) : (ty_expr row_element list , typer_error) result =
   let l' = List.rev @@ LMap.to_kv_list l in
   match l' , size with
   | [ (_,l) ; (_,r) ] , 2 -> ok [ l ; r ]
@@ -92,7 +92,7 @@ let rec from_right_comb_pair (l:row_element label_map) (size:int) : (row_element
     ok (l :: next)
   | _ -> fail (corner_case "Could not convert michelson_pair_right_comb pair to a record")
 
-let rec from_left_comb_pair (l:row_element label_map) (size:int) : (row_element list , typer_error) result =
+let rec from_left_comb_pair (l:ty_expr row_element label_map) (size:int) : (ty_expr row_element list , typer_error) result =
   let l' = List.rev @@ LMap.to_kv_list l in
   match l' , size with
   | [ (_,l) ; (_,r) ] , 2 -> ok [ l ; r ]
@@ -102,7 +102,7 @@ let rec from_left_comb_pair (l:row_element label_map) (size:int) : (row_element 
     ok (List.append next [r])
   | _ -> fail (corner_case "Could not convert michelson_pair_left_comb pair to a record")
 
-let rec from_right_comb_variant (l:row_element label_map) (size:int) : (row_element list , typer_error) result =
+let rec from_right_comb_variant (l:ty_expr row_element label_map) (size:int) : (ty_expr row_element list , typer_error) result =
   let l' = List.rev @@ LMap.to_kv_list l in
   match l' , size with
   | [ (_,l) ; (_,r) ] , 2 -> ok [ l ; r ]
@@ -112,7 +112,7 @@ let rec from_right_comb_variant (l:row_element label_map) (size:int) : (row_elem
     ok (l :: next)
   | _ -> fail (corner_case "Could not convert michelson_or right comb to a variant")
 
-let rec from_left_comb_variant (l:row_element label_map) (size:int) : (row_element list , typer_error) result =
+let rec from_left_comb_variant (l:ty_expr row_element label_map) (size:int) : (ty_expr row_element list , typer_error) result =
   let l' = List.rev @@ LMap.to_kv_list l in
   match l' , size with
   | [ (_,l) ; (_,r) ] , 2 -> ok [ l ; r ]
@@ -130,14 +130,14 @@ let convert_pair_to_left_comb l =
   let l' = List.sort (fun (_,{decl_pos=a;_}) (_,{decl_pos=b;_}) -> Int.compare a b) l in
   T_record (to_left_comb_pair l' LMap.empty)
 
-let convert_pair_from_right_comb (src: row_element label_map) (dst: row_element label_map) : (type_content , typer_error) result =
+let convert_pair_from_right_comb (src:ty_expr row_element label_map) (dst:ty_expr row_element label_map) : (type_content , typer_error) result =
   let%bind fields = from_right_comb_pair src (LMap.cardinal dst) in
   let labels = List.map (fun (l,_) -> l) @@
     List.sort (fun (_,{decl_pos=a;_}) (_,{decl_pos=b;_}) -> Int.compare a b ) @@
     LMap.to_kv_list dst in
   ok @@ (T_record (LMap.of_list @@ List.combine labels fields))
 
-let convert_pair_from_left_comb (src: row_element label_map) (dst: row_element label_map) : (type_content , typer_error) result =
+let convert_pair_from_left_comb (src:ty_expr row_element label_map) (dst:ty_expr row_element label_map) : (type_content , typer_error) result =
   let%bind fields = from_left_comb_pair src (LMap.cardinal dst) in
   let labels = List.map (fun (l,_) -> l) @@
     List.sort (fun (_,{decl_pos=a;_}) (_,{decl_pos=b;_}) -> Int.compare a b ) @@
@@ -152,14 +152,14 @@ let convert_variant_to_left_comb l =
   let l' = List.sort (fun (_,{decl_pos=a;_}) (_,{decl_pos=b;_}) -> Int.compare a b) l in
   T_sum (to_left_comb_variant l' LMap.empty)
 
-let convert_variant_from_right_comb (src: row_element label_map) (dst: row_element label_map) : (type_content , typer_error) result =
+let convert_variant_from_right_comb (src:ty_expr row_element label_map) (dst:ty_expr row_element label_map) : (type_content , typer_error) result =
   let%bind ctors = from_right_comb_variant src (LMap.cardinal dst) in
   let ctors_name = List.map (fun (l,_) -> l) @@
     List.sort (fun (_,{decl_pos=a;_}) (_,{decl_pos=b;_}) -> Int.compare a b ) @@
     LMap.to_kv_list dst in
   ok @@ (T_sum (LMap.of_list @@ List.combine ctors_name ctors))
 
-let convert_variant_from_left_comb (src: row_element label_map) (dst: row_element label_map) : (type_content , typer_error) result =
+let convert_variant_from_left_comb (src:ty_expr row_element label_map) (dst:ty_expr row_element label_map) : (type_content , typer_error) result =
   let%bind ctors = from_left_comb_variant src (LMap.cardinal dst) in
   let ctors_name = List.map (fun (l,_) -> l) @@
     List.sort (fun (_,{decl_pos=a;_}) (_,{decl_pos=b;_}) -> Int.compare a b ) @@

@@ -32,13 +32,13 @@ val t_wildcard  : ?loc:Location.t -> unit -> type_expression
 val t_record    : te_map -> type_expression
 *)
 val t_pair   : ?loc:Location.t -> ( type_expression * type_expression ) -> type_expression
-val t_tuple  : ?loc:Location.t -> row_element list -> type_expression
+val t_tuple  : ?loc:Location.t -> ty_expr row_element list -> type_expression
 
-val t_record    : ?loc:Location.t -> row_element Map.String.t -> type_expression
-val t_record_ez : ?loc:Location.t -> (string * row_element) list -> type_expression
+val t_record    : ?loc:Location.t -> ty_expr row_element Map.String.t -> type_expression
+val t_record_ez : ?loc:Location.t -> (string * ty_expr row_element) list -> type_expression
 
-val t_sum    : ?loc:Location.t -> row_element Map.String.t -> type_expression
-val ez_t_sum : ?loc:Location.t -> ( string * row_element ) list -> type_expression
+val t_sum    : ?loc:Location.t -> ty_expr row_element Map.String.t -> type_expression
+val ez_t_sum : ?loc:Location.t -> ( string * ty_expr row_element ) list -> type_expression
 
 val t_function : ?loc:Location.t -> type_expression -> type_expression -> type_expression
 
@@ -72,15 +72,17 @@ val e_variable : ?loc:Location.t -> expression_variable -> expression
 val e_constructor : ?loc:Location.t -> label -> expression -> expression
 val e_constant : ?loc:Location.t -> constant' -> expression list -> expression
 
-val e_lambda : ?loc:Location.t -> (expression_variable , type_expression) binder -> expression -> expression
+val e_lambda : ?loc:Location.t -> ty_expr binder -> expression -> expression
+val e_lambda_ez : ?loc:Location.t -> expression_variable * ty_expr -> expression -> expression
 val e_application : ?loc:Location.t -> expression -> expression -> expression
-val e_recursive : ?loc:Location.t -> expression_variable -> type_expression -> lambda -> expression
-val e_let_in : ?loc:Location.t -> ( expression_variable * type_expression ) -> bool -> bool -> expression -> expression -> expression
+val e_recursive : ?loc:Location.t -> expression_variable -> type_expression -> (expr, ty_expr) lambda -> expression
+val e_let_in   : ?loc:Location.t -> ty_expr binder -> bool -> bool -> expression -> expression -> expression
+val e_let_in_ez: ?loc:Location.t -> expression_variable * ty_expr -> bool -> bool -> expression -> expression -> expression
 val e_raw_code : ?loc:Location.t -> string -> expression -> expression
 
 val e_record   : ?loc:Location.t -> expression label_map -> expression
-val e_accessor : ?loc:Location.t -> expression -> access list -> expression
-val e_update   : ?loc:Location.t -> expression -> access list -> expression -> expression
+val e_accessor : ?loc:Location.t -> expression -> expr access list -> expression
+val e_update   : ?loc:Location.t -> expression -> expr access list -> expression -> expression
 
 val e_annotation : ?loc:Location.t -> expression -> type_expression -> expression
 
