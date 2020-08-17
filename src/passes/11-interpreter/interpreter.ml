@@ -359,6 +359,9 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_SELF_ADDRESS , [] ) ->
       let>> s = Self in
       return s
+    | ( C_IMPLICIT_ACCOUNT , [ V_Ct (C_key_hash pkh) ] ) ->
+      let>> s = Implicit_account pkh in
+      return s
     (* Test operators *)
     | ( C_TEST_INJECT_SCRIPT, [ V_Ct (C_address addr) ; code ; storage ] ) ->
       let>> () = Inject_script (addr, code, storage) in

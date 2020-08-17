@@ -34,6 +34,7 @@ module Command = struct
     | Balance : LT.Tez.t t
     | Sender : string t
     | Source : string t
+    | Implicit_account : string -> LT.value t 
     | Serialize_pack_data : 'a -> 'a t
     | Serialize_unpack_data : 'a -> 'a t
     | Lift_tz_result : 'a Memory_proto_alpha.Alpha_environment.Error_monad.tzresult -> 'a t
@@ -186,6 +187,13 @@ module Command = struct
     | Balance -> ok (ctxt.step_constants.balance, ctxt)
     | Sender -> ok (Alpha_context.Contract.to_b58check ctxt.step_constants.payer, ctxt)
     | Source -> ok (Alpha_context.Contract.to_b58check ctxt.step_constants.source, ctxt)
+    | Implicit_account pkh ->
+      let%bind pkh = 
+        Proto_alpha_utils.Trace.trace_tzresult (fun _ -> `TODO) @@
+        Tezos_crypto.Signature.Public_key_hash.of_b58check pkh in
+      let c = Alpha_context.Contract.implicit_contract pkh in
+      let addr = Alpha_context.Contract.to_b58check c in
+      ok (LT.V_Ct (LT.C_address addr), ctxt)
     | Serialize_pack_data v -> ok (v,ctxt)
     | Serialize_unpack_data v -> ok (v,ctxt)
     | Parse_contract_for_script _ -> Trace.fail `TODO
