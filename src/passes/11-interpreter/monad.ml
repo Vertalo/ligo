@@ -114,7 +114,14 @@ module Command = struct
       in
       let contracts = Mini_proto.StateMap.update (Address addr) aux ctxt.contracts in
       let contract = Mini_proto.StateMap.find (Address addr) contracts in
-      let step_constants = { ctxt.step_constants with payer = ctxt.step_constants.source ; balance = contract.script_balance} in
+      let%bind self =
+        Proto_alpha_utils.Trace.trace_alpha_tzresult (fun _ -> `TODO) @@
+        Alpha_context.Contract.of_b58check addr in
+      let step_constants = {
+        ctxt.step_constants with
+          self ;
+          payer = ctxt.step_constants.source ;
+          balance = contract.script_balance } in
       let ctxt : Mini_proto.t = { contracts ; step_constants } in
       ok ( (), ctxt)
     | Internal_call (addr, amt) ->
@@ -130,7 +137,14 @@ module Command = struct
       in
       let contracts = Mini_proto.StateMap.update (Address addr) aux ctxt.contracts in
       let contract = Mini_proto.StateMap.find (Address addr) contracts in
-      let step_constants = { ctxt.step_constants with source = ctxt.step_constants.self ; balance = contract.script_balance} in
+      let%bind self =
+        Proto_alpha_utils.Trace.trace_alpha_tzresult (fun _ -> `TODO) @@
+        Alpha_context.Contract.of_b58check addr in
+      let step_constants = {
+        ctxt.step_constants with
+          self ;
+          source = ctxt.step_constants.self ;
+          balance = contract.script_balance } in
       let ctxt : Mini_proto.t = { contracts ; step_constants } in
       ok ( (), ctxt)
     | Update_storage (addr, storage) ->
