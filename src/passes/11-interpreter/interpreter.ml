@@ -7,7 +7,7 @@ type interpreter_error = Errors.interpreter_error
 module Env = Ligo_interpreter.Environment
 
 let apply_comparison : Ast_typed.constant' -> value list -> value Monad.t =
-  fun c operands -> 
+  fun c operands ->
     let open Monad in
     match (c,operands) with
     | ( comp , [ V_Ct (C_int a'      ) ; V_Ct (C_int b'      ) ] )
@@ -17,7 +17,7 @@ let apply_comparison : Ast_typed.constant' -> value list -> value Monad.t =
       let>> cmpres = Int_of_int i in
       let>> cmpres = Int_compare (cmpres, Ligo_interpreter.Int_repr_copied.zero) in
       let x = match comp with
-        (*TODO those Int.(XX) ... should be added as a command in the monad and replaced by 
+        (*TODO those Int.(XX) ... should be added as a command in the monad and replaced by
           int_repr_copied.Compare.(XX)*)
         | C_EQ -> (cmpres = 0)
         | C_NEQ -> (cmpres <> 0)
@@ -33,7 +33,7 @@ let apply_comparison : Ast_typed.constant' -> value list -> value Monad.t =
       let>> cmpres = Int_of_int i in
       let>> cmpres = Int_compare (cmpres, Ligo_interpreter.Int_repr_copied.zero) in
       let x = match comp with
-        (*TODO those Int.(XX) ... should be added as a command in the monad and replaced by 
+        (*TODO those Int.(XX) ... should be added as a command in the monad and replaced by
           int_repr_copied.Compare.(XX)*)
         | C_EQ -> (cmpres = 0)
         | C_NEQ -> (cmpres <> 0)
@@ -141,7 +141,7 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
       let>> b' = Int_to_int64 b' in
       begin
         match b' with
-        | None -> 
+        | None ->
           let>> res = Fail_overflow Location.generated (*TODO*) in
           res
         | Some b' ->
@@ -151,7 +151,7 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
       end
     | ( C_DIV    , [ V_Ct (C_int a'  )  ; V_Ct (C_int b'  )  ] )
     | ( C_DIV    , [ V_Ct (C_int a'  )  ; V_Ct (C_nat b'  )  ] )
-    | ( C_DIV    , [ V_Ct (C_nat a'  )  ; V_Ct (C_int b'  )  ] ) -> 
+    | ( C_DIV    , [ V_Ct (C_nat a'  )  ; V_Ct (C_int b'  )  ] ) ->
       let>> a = Int_ediv (a',b') in
       begin
         match a with
@@ -218,7 +218,7 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_CONCAT , [ V_Ct (C_bytes a' ) ; V_Ct (C_bytes b' ) ] ) -> return_ct @@ C_bytes  (Bytes.cat a' b')
     | ( C_OR     , [ V_Ct (C_bool a'  ) ; V_Ct (C_bool b'  ) ] ) -> return_ct @@ C_bool   (a' || b')
     | ( C_AND    , [ V_Ct (C_bool a'  ) ; V_Ct (C_bool b'  ) ] ) -> return_ct @@ C_bool   (a' && b')
-    | ( C_XOR    , [ V_Ct (C_bool a'  ) ; V_Ct (C_bool b'  ) ] ) -> return_ct @@ C_bool   ( (a' || b') && (not (a' && b')) ) 
+    | ( C_XOR    , [ V_Ct (C_bool a'  ) ; V_Ct (C_bool b'  ) ] ) -> return_ct @@ C_bool   ( (a' || b') && (not (a' && b')) )
     | ( C_LIST_EMPTY, []) -> return @@ V_List ([])
     | ( C_LIST_MAP , [ V_Func_val {arg_binder ; body ; env}  ; V_List (elts) ] ) ->
       let* elts =
@@ -285,7 +285,7 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_MAP_MEM , [ k ; V_Map kvs ] ) -> return @@ v_bool (List.mem_assoc k kvs)
     | ( C_MAP_ADD , [ k ; v ; V_Map kvs as vmap] ) ->
       if (List.mem_assoc k kvs) then return vmap
-      else return (V_Map ((k,v)::kvs)) 
+      else return (V_Map ((k,v)::kvs))
     | ( C_MAP_REMOVE , [ k ; V_Map kvs] ) -> return @@ V_Map (List.remove_assoc k kvs)
     | ( C_MAP_UPDATE , [ k ; V_Construct (option,v) ; V_Map kvs] ) -> (match option with
       | "Some" -> return @@ V_Map ((k,v)::(List.remove_assoc k kvs))
@@ -321,13 +321,35 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
       ( match v with
         | Some v -> return (V_Construct ("Some", v))
         | None -> return (V_Construct ("None", V_Ct C_unit))
-      ) 
+      )
     | ( C_CONTRACT , [ V_Ct (C_address addr) ] ) ->
       let>> v = Get_contract addr in
       ( match v with
         | Some v -> return v
         | None -> return (Misc.contract_not_found addr)
-      ) 
+      )
+    | ( C_CALL , [ param ; V_Ct (C_mutez amt) ; V_Ct (C_address addr) ] ) ->
+      let>> script = Get_script addr in
+      let* result = match script with
+        | None -> return (Misc.contract_not_found addr)
+        | Some (code, storage) -> ( match code with
+          | V_Func_val {arg_binder ; body ; env} ->
+            let param_storage = V_Record (LMap.of_list [ (Label "0", param) ; (Label "1", storage) ]) in
+            let f_env' = Env.extend env (arg_binder, param_storage) in
+            Try (eval_ligo body f_env')
+          | _ -> failwith "code is not a function"
+        )
+      in
+      begin
+        match result with
+        | None -> Misc.fail "called contract failed"
+        | Some (V_Record v) ->
+          let>> () = External_call (addr, amt) in
+          let new_st = LMap.find (Label "1") v in
+          let>> () = Update_storage (addr, new_st) in
+          return_ct C_unit
+        | _ -> failwith "code does not return a pair nor fails"
+      end
     (* Test operators *)
     | ( C_TEST_INJECT_SCRIPT, [ V_Ct (C_address addr) ; code ; storage ] ) ->
       let>> () = Inject_script (addr, code, storage) in
@@ -349,13 +371,14 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
           | V_Func_val {arg_binder ; body ; env} ->
             let param_storage = V_Record (LMap.of_list [ (Label "0", param) ; (Label "1", storage) ]) in
             let f_env' = Env.extend env (arg_binder, param_storage) in
-            eval_ligo body f_env'
+            Try (eval_ligo body f_env')
           | _ -> failwith "code is not a function"
         )
       in
       begin
         match result with
-        | V_Record v ->
+        | None -> Misc.fail "called contract failed"
+        | Some (V_Record v) ->
           let>> () = External_call (addr, amt) in
           (* let ops = LMap.find (Label "0") v in *)
           let new_st = LMap.find (Label "1") v in
@@ -368,7 +391,7 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
       return storage
     | ( C_TEST_ASSERT_FAILURE , [ V_Func_val {arg_binder=_ ; body ; env} ] ) ->
       let* failed = Try (eval_ligo body env) in
-      return_ct (C_bool failed)
+      return_ct (C_bool (Option.is_none failed))
     | _ ->
       let () = Format.printf "%a\n" Ast_typed.PP.constant c in
       let () = List.iter ( fun e -> Format.printf "%s\n" (Ligo_interpreter.PP.pp_value e)) operands in
@@ -387,15 +410,10 @@ C_HASH_KEY
 need exts
 C_CHAIN_ID
 C_CONTRACT_ENTRYPOINT_OPT
-C_CONTRACT_OPT
-C_CONTRACT
 C_CONTRACT_ENTRYPOINT
 C_SELF
 C_SELF_ADDRESS
 C_IMPLICIT_ACCOUNT
-
-C_CALL
-C_SET_DELEGATE
 
 C_BYTES_PACK
 C_BYTES_UNPACK
@@ -450,7 +468,7 @@ and eval_ligo : Ast_typed.expression -> env -> value Monad.t
           | _ -> failwith "trying to apply on something that is not a function"
       )
     | E_lambda {binder; result;} ->
-      return @@ V_Func_val {arg_binder=binder ; body=result ; env} 
+      return @@ V_Func_val {arg_binder=binder ; body=result ; env}
     | E_let_in {let_binder ; rhs; let_result} -> (
       let* rhs' = eval_ligo rhs env in
       eval_ligo (let_result) (Env.extend env (let_binder,rhs'))

@@ -19,6 +19,7 @@ module Command = struct
     | Get_script : string -> (LT.value * LT.value) option t
     | Get_contract : string -> LT.value option t
     | External_call : string * LT.Tez.t -> unit t
+    | Internal_call : string * LT.Tez.t -> unit t
     | Update_storage : string * LT.value -> unit t
     | Get_storage : string -> LT.value t
     | Inject_script : string * LT.value * LT.value -> unit t
@@ -109,6 +110,22 @@ module Command = struct
       let step_constants = { ctxt.step_constants with payer = ctxt.step_constants.source ; balance = contract.script_balance} in
       let ctxt : Mini_proto.t = { contracts ; step_constants } in
       ok ( (), ctxt)
+    | Internal_call (addr, amt) ->
+      let aux : Mini_proto.state option -> Mini_proto.state option = fun state_opt ->
+        match state_opt with
+        | Some state ->
+          let script_balance =
+            Proto_alpha_utils.Trace.trace_alpha_tzresult (fun _ -> `TODO) @@
+            LT.Tez.(state.script_balance +? amt) in
+          let script_balance = match script_balance with Ok (x,_) -> x | Error _ -> failwith "TODO" in
+          Some { state with script_balance }
+        | None -> failwith "EXTERNAL CALL DESTINATION UNKNOWN" (* TODO *)
+      in
+      let contracts = Mini_proto.StateMap.update (Address addr) aux ctxt.contracts in
+      let contract = Mini_proto.StateMap.find (Address addr) contracts in
+      let step_constants = { ctxt.step_constants with source = ctxt.step_constants.self ; balance = contract.script_balance} in
+      let ctxt : Mini_proto.t = { contracts ; step_constants } in
+      ok ( (), ctxt)
     | Update_storage (addr, storage) ->
       let aux : Mini_proto.state option -> Mini_proto.state option = fun state_opt ->
         match state_opt with
@@ -190,7 +207,7 @@ type 'a t =
   | Return : 'a -> 'a t
   (* | Trace : Error.t * 'a t -> 'a t *)
   | Bind_err : 'a result_monad -> 'a t
-  | Try : 'a t -> bool t
+  | Try : 'a t -> 'a option t
 
 let rec eval
   : type a.
@@ -206,9 +223,9 @@ let rec eval
   | Try e ->
     begin
     try
-      let%bind _ = eval e ctxt log in
-      ok (false, ctxt)
-    with LT.Temporary_hack _s -> ok (true, ctxt)
+      let%bind (ret, ctxt) = eval e ctxt log in
+      ok (Some ret, ctxt)
+    with LT.Temporary_hack _s -> ok (None, ctxt)
     end
   | Call command -> Command.eval command ctxt log
   | Return v -> ok (v, ctxt)
