@@ -316,6 +316,7 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_BALANCE , [] ) -> let>> blc = Balance in return_ct @@ C_mutez blc
     | ( C_SENDER, [] ) -> let>> snd = Sender in return_ct @@ C_address snd
     | ( C_SOURCE, [] ) -> let>> src = Source in return_ct @@ C_address src
+    | ( C_CHAIN_ID, [] ) -> let>> id = Chain_id in return_ct @@ C_bytes id
     | ( C_CONTRACT_OPT , [ V_Ct (C_address addr) ] ) ->
       let>> v = Get_contract addr in
       ( match v with
@@ -350,6 +351,14 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
           return_ct C_unit
         | _ -> failwith "code does not return a pair nor fails"
       end
+    | ( C_ADDRESS , [ addr ] ) ->
+      return addr
+    | ( C_SELF , [ _ep ] ) ->
+      let>> s = Self in
+      return s
+    | ( C_SELF_ADDRESS , [] ) ->
+      let>> s = Self in
+      return s
     (* Test operators *)
     | ( C_TEST_INJECT_SCRIPT, [ V_Ct (C_address addr) ; code ; storage ] ) ->
       let>> () = Inject_script (addr, code, storage) in
@@ -411,8 +420,6 @@ need exts
 C_CHAIN_ID
 C_CONTRACT_ENTRYPOINT_OPT
 C_CONTRACT_ENTRYPOINT
-C_SELF
-C_SELF_ADDRESS
 C_IMPLICIT_ACCOUNT
 
 C_BYTES_PACK
@@ -561,14 +568,14 @@ let eval : ?options:options -> Ast_typed.program -> (string , _) result =
   let aux (pp,top_env,ctxt) el =
     match Location.unwrap el with
     | Ast_typed.Declaration_constant {binder; expr ; inline=_ ; _} ->
-       let%bind (v,ctxt) =
-         (*TODO This TRY-CATCH is here until we properly implement effects*)
-         try
-           Monad.eval (eval_ligo expr top_env) ctxt None
-         with Temporary_hack s ->
-           ok (V_Failure s, ctxt)
-              (*TODO This TRY-CATCH is here until we properly implement effects*)
-       in
+      let%bind (v,ctxt) =
+        (*TODO This TRY-CATCH is here until we properly implement effects*)
+        try
+          Monad.eval (eval_ligo expr top_env) ctxt None
+        with Temporary_hack s ->
+          ok (V_Failure s, ctxt)
+        (*TODO This TRY-CATCH is here until we properly implement effects*)
+      in
       let pp' = pp^"\n val "^(Var.to_name binder.wrap_content)^" = "^(Ligo_interpreter.PP.pp_value v) in
       let top_env' = Env.extend top_env (binder, v) in
       ok (pp',top_env',ctxt)

@@ -16,6 +16,8 @@ module Command = struct
   type 'a t =
     | Fail_overflow : Location.t -> 'a t
     | Fail_reject : Location.t * LT.value -> 'a t
+    | Chain_id : bytes t
+    | Self : LT.value t
     | Get_script : string -> (LT.value * LT.value) option t
     | Get_contract : string -> LT.value option t
     | External_call : string * LT.Tez.t -> unit t
@@ -81,6 +83,11 @@ module Command = struct
       fail (`Ligo_interpret_overflow location)
     | Fail_reject (location, e) ->
       fail (`Ligo_interpret_reject (location,e))
+    | Chain_id ->
+      ok (ctxt.step_constants.chain_id, ctxt)
+    | Self ->
+      let self = Alpha_context.Contract.to_b58check ctxt.step_constants.self in
+      ok (LT.V_Ct (LT.C_address self), ctxt)
     | Get_script addr ->
       let contract = Mini_proto.StateMap.find_opt (Address addr) ctxt.contracts in
       let res = match contract with

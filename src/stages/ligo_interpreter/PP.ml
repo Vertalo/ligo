@@ -34,7 +34,7 @@ let rec pp_value : value -> string = function
     
 let pp_context : Mini_proto.t -> string = fun { contracts ; step_constants } ->
   let open Mini_proto in
-  let {source;payer;self;amount;balance;now} = step_constants in
+  let {source;payer;self;amount;balance;now;chain_id=_} = step_constants in
   ignore source ;
   ignore payer ;
   ignore self ;
