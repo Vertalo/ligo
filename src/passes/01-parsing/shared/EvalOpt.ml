@@ -1,5 +1,9 @@
 (* Parsing command-line options *)
 
+(* Vendor dependencies *)
+
+module LexerLib = Simple_utils.LexerLib
+
 (* The type [command] denotes some possible behaviours of the
     compiler. *)
 
@@ -9,22 +13,13 @@ type command = Quiet | Copy | Units | Tokens
 
 module SSet = Set.Make (String)
 
-type line_comment = string (* Opening of a line comment *)
-type block_comment = <opening : string; closing : string>
-
-let mk_block ~opening ~closing : block_comment =
-  object
-    method opening = opening
-    method closing = closing
-  end
-
 type options = <
   input   : string option;
   libs    : string list;
   verbose : SSet.t;
   offsets : bool;
-  block   : block_comment option;
-  line    : line_comment option;
+  block   : LexerLib.block_comment option;
+  line    : LexerLib.line_comment option;
   ext     : string;
   mode    : [`Byte | `Point];
   cmd     : command;

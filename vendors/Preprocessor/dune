@@ -5,8 +5,10 @@
   (public_name Preprocessor)
   (wrapped true)
   (libraries
-    getopt
-    simple-utils)
+    ;; Vendor
+    simple-utils
+    ;; Third party
+    getopt)
   (modules
     EvalOpt
     E_Parser

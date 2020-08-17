@@ -1,14 +1,11 @@
 opam-version : "2.0"
 name         : "simple-utils"
 version      : "dev"
-synopsis     : "LIGO utilities, to be used by other libraries"
+synopsis     : "LIGO utilities"
 maintainer   : "Galfour <contact@ligolang.org>"
 authors      : "Galfour, Christian Rinderknecht"
 license      : "MIT"
 homepage     : "https://gitlab.com/ligolang/ligo-utils"
 bug-reports  : "https://gitlab.com/ligolang/ligo-utils/issues"
-depends      : ["dune"
-                "base"
-                "yojson"
-                "ppx_let"]
+depends      : ["dune" "base" "yojson" "ppx_let"]
 build        : [["dune" "build" "-p" name]]

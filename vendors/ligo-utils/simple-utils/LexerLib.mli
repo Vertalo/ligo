@@ -1,9 +1,5 @@
 (* A library for writing UTF8-aware lexers *)
 
-module Region = Simple_utils.Region
-module Pos    = Simple_utils.Pos
-module FQueue = Simple_utils.FQueue
-
 (* The function [rollback] resets the lexing buffer to the state it
    was when it matched the last regular expression. This function is
    safe to use only in the semantic action of the rule which last
@@ -41,6 +37,13 @@ type thread = <
 >
 
 val mk_thread : Region.t -> thread
+
+(* For standalone lexers and parsers *)
+
+type line_comment = string (* Opening of a line comment *)
+type block_comment = <opening : string; closing : string>
+
+val mk_block : opening:string -> closing:string -> block_comment
 
 (* STATE *)
 
@@ -117,8 +120,8 @@ type 'token state = <
   pos      : Pos.t;
   decoder  : Uutf.decoder;
   supply   : Bytes.t -> int -> int -> unit;
-  block    : EvalOpt.block_comment option;
-  line     : EvalOpt.line_comment option;
+  block    : block_comment option;
+  line     : line_comment option;
 
   enqueue      : 'token -> 'token state;
   set_units    : (Markup.t list * 'token) FQueue.t -> 'token state;
@@ -126,7 +129,7 @@ type 'token state = <
   set_pos      : Pos.t -> 'token state;
   slide_token  : 'token -> 'token state;
 
-  sync         : Lexing.lexbuf -> Region.t * lexeme * 'token state;
+  sync         : Lexing.lexbuf -> 'token sync;
 
   push_newline : Lexing.lexbuf -> 'token state;
   push_line    : thread -> 'token state;
@@ -137,6 +140,41 @@ type 'token state = <
   push_markup  : Markup.t -> 'token state;
   push_comment : Markup.comment -> 'token state
 >
+
+and 'token sync = {
+  region : Region.t;
+  lexeme : lexeme;
+  state  : 'token state
+}
+
+(* LEXING COMMENTS AND STRINGS *)
+
+(* For the lexer in common to all LIGO syntaxes *)
+
+type error =
+  Invalid_utf8_sequence
+| Unterminated_comment of string
+| Unterminated_string
+| Unterminated_verbatim
+| Broken_string
+| Invalid_character_in_string
+| Undefined_escape_sequence
+
+exception Error of error Region.reg
+
+type 'token cut =
+  thread -> 'token state -> Lexing.lexbuf -> 'token state
+
+type 'token scanner =
+  'token state -> Lexing.lexbuf -> ('token state, error) Stdlib.result
+
+val mk_scan :
+  mk_str:('token cut) ->
+  mk_verb:('token cut) ->
+  callback:('token scanner) ->
+  'token state ->
+  Lexing.lexbuf ->
+  ('token state, error) Stdlib.result
 
 (* LEXER INSTANCE *)
 
@@ -194,14 +232,17 @@ type open_err = File_opening of string
 val lexbuf_from_input :
   input -> (Lexing.lexbuf * (unit -> unit), open_err) Stdlib.result
 
+type 'token style_checker =
+  'token ->
+  (Lexing.lexbuf -> (Markup.t list * 'token) option) ->
+  Lexing.lexbuf ->
+  unit
+
 val open_token_stream :
-  ?line:EvalOpt.line_comment ->
-  ?block:EvalOpt.block_comment ->
+  ?line:line_comment ->
+  ?block:block_comment ->
   scan:('token state -> Lexing.lexbuf -> 'token state) ->
   token_to_region:('token -> Region.t) ->
-  style:('token ->
-         (Lexing.lexbuf -> (Markup.t list * 'token) option) ->
-         Lexing.lexbuf ->
-         unit) ->
+  style:('token style_checker) ->
   input ->
   ('token instance, open_err) Stdlib.result

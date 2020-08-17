@@ -1,11 +1,14 @@
 (* Generic parser API for LIGO *)
 
-(* Dependencies *)
+(* Vendor dependencies *)
 
 module Region   = Simple_utils.Region
+module LexerLib = Simple_utils.LexerLib
+
+(* Internal dependencies *)
+
 module EvalOpt  = Lexer_shared.EvalOpt
 module Lexer    = Lexer_shared.Lexer
-module LexerLib = Lexer_shared.LexerLib
 
 (* Input/Output *)
 

@@ -1,12 +1,15 @@
 (* Driver for the CameLIGO parser *)
 
-(* Dependencies *)
+(* Vendor dependencies *)
 
 module Region     = Simple_utils.Region
+module LexerLib   = Simple_utils.LexerLib
+
+(* Internal dependencies *)
+
 module EvalOpt    = Lexer_shared.EvalOpt
 module LexToken   = Lexer_cameligo.LexToken
 module CST        = Cst.Cameligo
-module SSet       = Set.Make (String)
 module ParserUnit = Parser_shared.ParserUnit
 module Pretty     = Parser_cameligo.Pretty
 
@@ -15,19 +18,18 @@ module Pretty     = Parser_cameligo.Pretty
 module IO =
   struct
     let options =
-      let open EvalOpt in
-      let block = mk_block ~opening:"(*" ~closing:"*)"
-      in read ~block ~line:"//" ".mligo"
+      let block = LexerLib.mk_block ~opening:"(*" ~closing:"*)"
+      in EvalOpt.read ~block ~line:"//" ".mligo"
   end
 
 module SubIO =
   struct
     type options = <
       libs    : string list;
-      verbose : SSet.t;
+      verbose : Set.Make (String).t;
       offsets : bool;
-      block   : EvalOpt.block_comment option;
-      line    : EvalOpt.line_comment option;
+      block   : LexerLib.block_comment option;
+      line    : LexerLib.line_comment option;
       ext     : string;
       mode    : [`Byte | `Point];
       cmd     : EvalOpt.command;

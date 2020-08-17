@@ -1,13 +1,21 @@
 (* Functor to build a LIGO lexer *)
 
-module Region = Simple_utils.Region
-module Preproc = Preprocessor.Preproc
-module SSet = Set.Make (String)
+(* Vendor dependencies *)
+
+module Region   = Simple_utils.Region
+module LexerLib = Simple_utils.LexerLib
+module Preproc  = Preprocessor.Preproc
+
+(* CLI options *)
 
 module type IO =
   sig
-    val options : EvalOpt.options (* CLI options *)
+    val options : EvalOpt.options
   end
+
+(* The functor itself *)
+
+module SSet = Set.Make (String)
 
 module Make (IO: IO) (Lexer: Lexer.S) =
   struct
@@ -46,7 +54,8 @@ module Make (IO: IO) (Lexer: Lexer.S) =
                     ~scan:Lexer.scan
                     ~token_to_region:Lexer.Token.to_region
                     ~style:Lexer.Token.check_right_context
-                    source with
+                    source
+            with
               Ok LexerLib.{read; buffer; close; _} ->
                 let close_all () = flush_all (); close () in
                 let rec read_tokens tokens =

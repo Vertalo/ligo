@@ -1,6 +1,6 @@
 (* The main module of the preprocessor (see [lex]) *)
 
-(* Regions *)
+(* Vendor dependencies *)
 
 module Region = Simple_utils.Region
 

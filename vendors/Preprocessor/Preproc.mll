@@ -3,19 +3,14 @@
 {
 (* START OF HEADER *)
 
+(* Vendor dependencies *)
+
 module Region = Simple_utils.Region
-module Pos = Simple_utils.Pos
+module Pos    = Simple_utils.Pos
+
+(* Utility functions *)
 
 let sprintf = Printf.sprintf
-
-(* Rolling back one lexeme _within the current semantic action_ *)
-
-let rollback buffer =
-  let open Lexing in
-  let len = String.length (lexeme buffer) in
-  let pos_cnum = buffer.lex_curr_p.pos_cnum - len in
-  buffer.lex_curr_pos <- buffer.lex_curr_pos - len;
-  buffer.lex_curr_p <- {buffer.lex_curr_p with pos_cnum}
 
 (* STRING PROCESSING *)
 
@@ -606,7 +601,7 @@ rule scan state = parse
     | Some _ | None ->
         let n = String.length lexeme in
           begin
-            rollback lexbuf;
+            LexerLib.rollback lexbuf;
             assert (n > 0);
             scan (scan_n_char n state lexbuf) lexbuf
           end }
@@ -624,7 +619,7 @@ rule scan state = parse
     | Some _ | None ->
         let n = String.length lexeme in
           begin
-            rollback lexbuf;
+            LexerLib.rollback lexbuf;
             assert (n > 0);
             scan (scan_n_char n state lexbuf) lexbuf
           end }
@@ -651,15 +646,15 @@ and symbol state = parse
 (* New lines and verbatim sequence of characters *)
 
 and skip_line state = parse
-  nl     { proc_nl state lexbuf   }
-| eof    { rollback lexbuf        }
+  nl     { proc_nl state lexbuf     }
+| eof    { LexerLib.rollback lexbuf }
 | blank+
 | _      { skip_line state lexbuf }
 
 and message acc = parse
   nl     { Lexing.new_line lexbuf;
            mk_str (List.length acc) acc }
-| eof    { rollback lexbuf;
+| eof    { LexerLib.rollback lexbuf;
            mk_str (List.length acc) acc }
 | _ as c { message (c::acc) lexbuf      }
 
@@ -667,7 +662,7 @@ and message acc = parse
 
 and in_line_com state = parse
   nl  { proc_nl state lexbuf; state                  }
-| eof { rollback lexbuf; state                       }
+| eof { LexerLib.rollback lexbuf; state              }
 | _   { if state.mode = Copy then copy state lexbuf;
         in_line_com state lexbuf                     }
 
@@ -681,7 +676,7 @@ and in_block block opening state = parse
                         else in_block block in
          let state    = next opening' state lexbuf
          in in_block block opening state lexbuf
-    else let ()    = rollback lexbuf in
+    else let ()    = LexerLib.rollback lexbuf in
          let n     = String.length lexeme in
          let ()    = assert (n > 0) in
          let state = scan_n_char n state lexbuf
@@ -691,7 +686,7 @@ and in_block block opening state = parse
     let lexeme = Lexing.lexeme lexbuf in
     if   block#closing = lexeme
     then (copy state lexbuf; state)
-    else let ()    = rollback lexbuf in
+    else let ()    = LexerLib.rollback lexbuf in
          let n     = String.length lexeme in
          let ()    = assert (n > 0) in
          let state = scan_n_char n state lexbuf
@@ -721,13 +716,13 @@ and in_inclusion opening acc len state = parse
 and in_string opening state = parse
   "\\\"" { copy state lexbuf; in_string opening state lexbuf }
 | '"'    { copy state lexbuf; state                          }
-| eof    { rollback lexbuf; state                            }
+| eof    { LexerLib.rollback lexbuf; state                   }
 | _      { copy state lexbuf; in_string opening state lexbuf }
 
 and preproc state = parse
   eof { state }
 | _   { let open Lexing in
-        let ()   = rollback lexbuf in
+        let ()   = LexerLib.rollback lexbuf in
         let name = lexbuf.lex_start_p.pos_fname in
         let ()   = if name <> "" then
                      print state (sprintf "# 1 \"%s\"\n" name)

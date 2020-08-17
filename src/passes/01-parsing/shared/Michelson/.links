@@ -2,10 +2,6 @@ $HOME/git/OCaml-build/Makefile
 
 ../EvalOpt.mli
 ../EvalOpt.ml
-../Markup.mli
-../Markup.ml
-../LexerLib.mli
-../LexerLib.ml
 ../LexerUnit.mli
 ../LexerUnit.ml
 ../LexerLog.mli

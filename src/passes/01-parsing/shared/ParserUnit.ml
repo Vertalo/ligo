@@ -1,16 +1,20 @@
 (* Functor to build a LIGO parser *)
 
-(* Dependencies *)
+(* Vendor dependencies *)
 
 module Region   = Simple_utils.Region
+module LexerLib = Simple_utils.LexerLib
+module Preproc  = Preprocessor.Preproc
+
+(* Internal dependencies *)
+
 module EvalOpt  = Lexer_shared.EvalOpt
 module Lexer    = Lexer_shared.Lexer
-module LexerLib = Lexer_shared.LexerLib
 module LexerLog = Lexer_shared.LexerLog
-module Preproc  = Preprocessor.Preproc
-module SSet     = Set.Make (String)
 
 (* A subtype of [EvalOpt.options] *)
+
+module SSet = Set.Make (String)
 
 module type SubIO =
   sig
@@ -18,8 +22,8 @@ module type SubIO =
       libs    : string list;
       verbose : SSet.t;
       offsets : bool;
-      block   : EvalOpt.block_comment option;
-      line    : EvalOpt.line_comment option;
+      block   : LexerLib.block_comment option;
+      line    : LexerLib.line_comment option;
       ext     : string;
       mode    : [`Byte | `Point];
       cmd     : EvalOpt.command;
@@ -58,7 +62,7 @@ module Make (Lexer: Lexer.S)
             (SubIO: SubIO) =
   struct
     open Printf
-    module SSet = Set.Make (String)
+    module SSet = SSet
 
     (* Log of the lexer *)
 

@@ -12,7 +12,7 @@
   (public_name ligo.lexer.pascaligo)
   (modules LexToken)
   (libraries
-    ;; Ligo
+    ;; LIGO
     lexer_shared
     ;; Third party
     hex)
@@ -24,7 +24,7 @@
 (executable
   (name LexerMain)
   (libraries
-    ;; Ligo
+    ;; LIGO
     lexer_shared
     lexer_pascaligo
     ;; Third party
@@ -52,7 +52,7 @@
   (modules
     Scoping Parser ParErr Pretty)
   (libraries
-    ;; Ligo
+    ;; LIGO
     lexer_pascaligo
     parser_shared
     cst

@@ -1,4 +1,12 @@
-module Region = Simple_utils.Region
+(* Embedding the LIGO lexer in a debug module (logger) *)
+
+(* Vendor dependencies *)
+
+module Region   = Simple_utils.Region
+module LexerLib = Simple_utils.LexerLib
+module Markup   = Simple_utils.Markup
+
+(* Signature of the logger *)
 
 module type S =
   sig
@@ -19,8 +27,8 @@ module type S =
     val trace :
       ?offsets:bool ->
       [`Byte | `Point] ->
-      ?block:EvalOpt.block_comment ->
-      ?line:EvalOpt.line_comment ->
+      ?block:LexerLib.block_comment ->
+      ?line:LexerLib.line_comment ->
       token_to_region:(token -> Region.t) ->
       style:(token ->
              (Lexing.lexbuf -> (Markup.t list * token) option) ->

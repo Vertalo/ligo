@@ -1,31 +1,28 @@
-;; Build of the lexer in common to all Ligo's dialects
-
-(ocamllex Lexer)
+;; Stuff common to lexers and parsers of LIGO
 
 ;; Build of the lexer as a library
+
+(ocamllex Lexer)
 
 (library
   (name lexer_shared)
   (public_name ligo.lexer.shared)
   (libraries
-    ;; Ligo
-    simple-utils
     ;; Vendors
+    simple-utils
     Preprocessor
     ;; Third party
     uutf
     getopt
     zarith)
   (modules
-    LexerLib
     LexerUnit
     Lexer
     LexerLog
-    Markup
     EvalOpt
     Version)
   (preprocess
-   (pps bisect_ppx --conditional)))
+    (pps bisect_ppx --conditional)))
 
 ;; Build of the parser as a library
 
@@ -33,8 +30,9 @@
   (name parser_shared)
   (public_name ligo.parser.shared)
   (libraries
-    ;; Ligo
+    ;; LIGO
     lexer_shared
+    ;; Vendors
     simple-utils
     ;; Third party
     menhirLib)
@@ -43,7 +41,6 @@
     ParserAPI)
   (preprocess
     (pps bisect_ppx --conditional)))
-;;  (flags (:standard -open Lexer_shared)))
 
 ;; Build of the version source (for the user, as a CLI option)
 

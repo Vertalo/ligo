@@ -1,12 +1,15 @@
 (* Driver for the PascaLIGO parser *)
 
-(* Dependencies *)
+(* Vendor dependencies *)
 
 module Region     = Simple_utils.Region
+module LexerLib   = Simple_utils.LexerLib
+
+(* Internal dependencies *)
+
 module EvalOpt    = Lexer_shared.EvalOpt
 module LexToken   = Lexer_pascaligo.LexToken
 module CST        = Cst.Pascaligo
-module SSet       = Set.Make (String)
 module ParserUnit = Parser_shared.ParserUnit
 module Pretty     = Parser_pascaligo.Pretty
 
@@ -15,19 +18,18 @@ module Pretty     = Parser_pascaligo.Pretty
 module IO =
   struct
     let options =
-      let open EvalOpt in
-      let block = mk_block ~opening:"(*" ~closing:"*)"
-      in read ~block ~line:"//" ".ligo"
+      let block = LexerLib.mk_block ~opening:"(*" ~closing:"*)"
+      in EvalOpt.read ~block ~line:"//" ".ligo"
   end
 
 module SubIO =
   struct
     type options = <
       libs    : string list;
-      verbose : SSet.t;
+      verbose : Set.Make (String).t;
       offsets : bool;
-      block   : EvalOpt.block_comment option;
-      line    : EvalOpt.line_comment option;
+      block   : LexerLib.block_comment option;
+      line    : LexerLib.line_comment option;
       ext     : string;
       mode    : [`Byte | `Point];
       cmd     : EvalOpt.command;

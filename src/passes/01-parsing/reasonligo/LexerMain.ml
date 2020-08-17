@@ -1,8 +1,12 @@
 (* Driver for the ReasonLIGO lexer *)
 
-(* Dependencies *)
+(* Vendor dependencies *)
 
 module Region    = Simple_utils.Region
+module LexerLib  = Simple_utils.LexerLib
+
+(* Internal dependencies *)
+
 module EvalOpt   = Lexer_shared.EvalOpt
 module Lexer     = Lexer_shared.Lexer
 module LexerUnit = Lexer_shared.LexerUnit

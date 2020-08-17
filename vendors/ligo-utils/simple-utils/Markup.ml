@@ -1,5 +1,3 @@
-module Region = Simple_utils.Region
-
 type lexeme = string
 
 type t =

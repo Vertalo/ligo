@@ -1,14 +1,23 @@
-(* Dependencies *)
+(* This file provides an interface to the PascaLIGO parser. *)
+
+(* Vendor dependencies *)
+
+module Region   = Simple_utils.Region
+module LexerLib = Simple_utils.LexerLib
+
+(* Internal dependencies *)
 
 module EvalOpt  = Lexer_shared.EvalOpt
 module CST      = Cst.Pascaligo
 module LexToken = Lexer_pascaligo.LexToken
 module Lexer    = Lexer_shared.Lexer.Make (LexToken)
 module Scoping  = Parser_pascaligo.Scoping
-module Region   = Simple_utils.Region
 module ParErr   = Parser_pascaligo.ParErr
-module SSet     = Set.Make (String)
 module Pretty   = Parser_pascaligo.Pretty
+
+(* Utility modules *)
+
+module SSet     = Set.Make (String)
 
 (* Mock IOs TODO: Fill them with CLI options *)
 
@@ -18,8 +27,8 @@ module SubIO =
       libs    : string list;
       verbose : SSet.t;
       offsets : bool;
-      block   : EvalOpt.block_comment option;
-      line    : EvalOpt.line_comment option;
+      block   : LexerLib.block_comment option;
+      line    : LexerLib.line_comment option;
       ext     : string;   (* ".ligo" *)
       mode    : [`Byte | `Point];
       cmd     : EvalOpt.command;
@@ -28,7 +37,7 @@ module SubIO =
     >
 
     let options : options =
-      let block = EvalOpt.mk_block ~opening:"(*" ~closing:"*)"
+      let block = LexerLib.mk_block ~opening:"(*" ~closing:"*)"
       in object
            method libs    = []
            method verbose = SSet.empty

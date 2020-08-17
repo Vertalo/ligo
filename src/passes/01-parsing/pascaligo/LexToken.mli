@@ -21,10 +21,10 @@
    aliased to [token].
 *)
 
-(* Dependencies *)
+(* Vendor dependencies *)
 
 module Region = Simple_utils.Region
-module Markup = Lexer_shared.Markup
+module Markup = Simple_utils.Markup
 
 (* TOKENS *)
 

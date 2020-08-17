@@ -3,10 +3,13 @@
 {
 (* START HEADER *)
 
-(* Dependencies *)
+(* Vendor dependencies *)
 
 module Region = Simple_utils.Region
-module Markup = Lexer_shared.Markup
+module Markup = Simple_utils.Markup
+
+(* Utility modules *)
+
 module SMap   = Map.Make (String)
 module SSet   = Set.Make (String)
 
@@ -547,7 +550,7 @@ type attr_err = Invalid_attribute
 
 let mk_attr _ _ _ = Error Invalid_attribute
 
-(* Language injection *)
+(* Code injection *)
 
 let mk_lang lang region = Lang Region.{value=lang; region}
 

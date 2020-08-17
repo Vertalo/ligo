@@ -1,12 +1,23 @@
+(* This file provides an interface to the CameLIGO parser. *)
+
+(* Vendor dependencies *)
+
+module Region   = Simple_utils.Region
+module LexerLib = Simple_utils.LexerLib
+
+(* Internal dependencies *)
+
 module CST      = Cst.Cameligo
 module LexToken = Lexer_cameligo.LexToken
 module Lexer    = Lexer_shared.Lexer.Make (LexToken)
 module Scoping  = Parser_cameligo.Scoping
-module Region   = Simple_utils.Region
 module ParErr   = Parser_cameligo.ParErr
-module SSet     = Set.Make (String)
 module Pretty   = Parser_cameligo.Pretty
 module EvalOpt  = Lexer_shared.EvalOpt
+
+(* Utility modules *)
+
+module SSet     = Set.Make (String)
 
 (* Mock IOs TODO: Fill them with CLI options *)
 
@@ -16,8 +27,8 @@ module SubIO =
       libs    : string list;
       verbose : SSet.t;
       offsets : bool;
-      block   : EvalOpt.block_comment option;
-      line    : EvalOpt.line_comment option;
+      block   : LexerLib.block_comment option;
+      line    : LexerLib.line_comment option;
       ext     : string;   (* ".mligo" *)
       mode    : [`Byte | `Point];
       cmd     : EvalOpt.command;
@@ -26,7 +37,7 @@ module SubIO =
     >
 
     let options : options =
-      let block = EvalOpt.mk_block ~opening:"(*" ~closing:"*)"
+      let block = LexerLib.mk_block ~opening:"(*" ~closing:"*)"
       in object
            method libs    = []
            method verbose = SSet.empty

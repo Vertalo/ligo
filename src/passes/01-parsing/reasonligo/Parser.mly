@@ -515,7 +515,7 @@ fun_expr(right_expr):
           arg_to_pattern e
       | EVar _ as e ->
           arg_to_pattern e
-      | e -> 
+      | e ->
       let open! SyntaxError
             in raise (Error (WrongFunctionArguments e))
     in
@@ -627,7 +627,7 @@ disj_expr_level:
 | par(tuple(disj_expr_level)) type_annotation_simple? {
     let region = nsepseq_to_region expr_to_region $1.value.inside in
     let tuple  = ETuple {value=$1.value.inside; region} in
-    let par = 
+    let par =
       EPar {$1 with value = {$1.value with inside = tuple}} in
     match $2 with
       Some (colon, typ) ->
@@ -897,7 +897,7 @@ exprs:
       in
       let sequence = ESeq {
         value = {
-          compound   = None; 
+          compound   = None;
           elements   = Some val_;
           terminator = snd c};
         region = sequence_region

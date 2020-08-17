@@ -17,7 +17,9 @@ module Runned_result = Runned_result
 
 (* Originally by Christian Rinderknecht *)
 
-module Pos    = Pos
-module Region = Region
-module Utils  = Utils
-module FQueue = FQueue
+module Pos      = Pos
+module Region   = Region
+module Utils    = Utils
+module FQueue   = FQueue
+module LexerLib = LexerLib
+module Markup   = Markup

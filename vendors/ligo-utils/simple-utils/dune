@@ -1,7 +1,13 @@
+;; Building the simple utilities for LIGO as a library
+
+(ocamllex LexerLib)
+
 (library
   (name simple_utils)
   (public_name simple-utils)
   (libraries
+    ;; Third party
+    uutf
     yojson
     unix
     str)

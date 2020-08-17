@@ -1,8 +1,12 @@
 (* Driver for the PascaLIGO lexer *)
 
-(* Dependencies *)
+(* Vendor dependencies *)
 
 module Region    = Simple_utils.Region
+module LexerLib  = Simple_utils.LexerLib
+
+(* Internal dependencies *)
+
 module EvalOpt   = Lexer_shared.EvalOpt
 module Lexer     = Lexer_shared.Lexer
 module LexerUnit = Lexer_shared.LexerUnit
@@ -13,9 +17,8 @@ module LexToken  = Lexer_pascaligo.LexToken
 module IO =
   struct
     let options =
-      let open EvalOpt in
-      let block = mk_block ~opening:"(*" ~closing:"*)"
-      in read ~block ~line:"//" ".ligo"
+      let block = LexerLib.mk_block ~opening:"(*" ~closing:"*)"
+      in EvalOpt.read ~block ~line:"//" ".ligo"
   end
 
 (* Instantiating the standalone lexer *)

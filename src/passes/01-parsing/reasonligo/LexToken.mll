@@ -2,10 +2,13 @@
 {
 (* START OF HEADER *)
 
-(* Dependencies *)
+(* Vendor dependencies *)
 
 module Region = Simple_utils.Region
-module Markup = Lexer_shared.Markup
+module Markup = Simple_utils.Markup
+
+(* Utility modules *)
+
 module SMap   = Map.Make (String)
 module SSet   = Set.Make (String)
 
@@ -490,7 +493,7 @@ let mk_attr header lexeme region =
     Ok (Attr Region.{value=lexeme; region})
   else Error Invalid_attribute
 
-(* Language injection *)
+(* Code injection *)
 
 let mk_lang lang region = Lang Region.{value=lang; region}
 

@@ -1,11 +1,17 @@
 (* Functor to build a standalone LIGO lexer *)
 
+(* Vendor dependencies *)
+
 module Region = Simple_utils.Region
+
+(* CLI options *)
 
 module type IO =
   sig
-    val options : EvalOpt.options (* CLI options *)
+    val options : EvalOpt.options
   end
+
+(* The functor itself *)
 
 module Make (IO: IO) (Lexer: Lexer.S) :
   sig

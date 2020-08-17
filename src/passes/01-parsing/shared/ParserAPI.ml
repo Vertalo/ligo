@@ -1,11 +1,14 @@
 (* Generic parser for LIGO *)
 
-(* Dependencies *)
+(* Vendor dependencies *)
 
 module Region   = Simple_utils.Region
+module LexerLib = Simple_utils.LexerLib
+
+(* Internal dependencies *)
+
 module EvalOpt  = Lexer_shared.EvalOpt
 module Lexer    = Lexer_shared.Lexer
-module LexerLib = Lexer_shared.LexerLib
 module LexerLog = Lexer_shared.LexerLog
 
 (* Input/Output *)
@@ -126,7 +129,7 @@ module Make (IO: IO)
       let message = ParErr.message (state checkpoint) in
       let message =
         if message = "<YOUR SYNTAX ERROR MESSAGE HERE>\n" then
-          (string_of_int (state checkpoint)) ^ ": <syntax error>"
+          string_of_int (state checkpoint) ^ ": <syntax error>"
         else message in
       match get_win () with
         LexerLib.Nil -> assert false
@@ -145,10 +148,15 @@ module Make (IO: IO)
 
     module Incr = Parser.Incremental
 
+    (* Logger for the lexer *)
+
     module Log = LexerLog.Make (Lexer)
+
     let log    = Log.output_token
                    ~offsets:IO.options#offsets
                    IO.options#mode IO.options#cmd stdout
+
+    (* Incremental parses *)
 
     let incr_contract LexerLib.{read; buffer; get_win; close; _} =
       let supplier  = I.lexer_lexbuf_to_supplier (read ~log) buffer
