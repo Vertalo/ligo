@@ -682,6 +682,10 @@ let test_assert_failure = typer_1 "TEST_ASSERT_FAILURE" @@ fun f ->
   ignore output;
   ok (t_bool ())
 
+let test_generate_addr = typer_1 "TEST_GENERATE_ADDR" @@ fun u ->
+  let%bind () = assert_eq u (t_unit ()) in
+  ok @@ t_pair (t_key_hash ()) (t_address ())
+
 let constant_typers c loc : (typer , typer_error) result = match c with
   | C_INT                 -> ok @@ int ;
   | C_UNIT                -> ok @@ unit loc;
@@ -785,4 +789,5 @@ let constant_typers c loc : (typer , typer_error) result = match c with
   | C_TEST_EXTERNAL_CALL -> ok @@ test_external_call ;
   | C_TEST_GET_STORAGE -> ok @@ test_get_storage ;
   | C_TEST_ASSERT_FAILURE -> ok @@ test_assert_failure ;
+  | C_TEST_GENERATE_ADDR -> ok @@ test_generate_addr ;
   | _ as cst -> fail (corner_case @@ Format.asprintf "typer not implemented for constant %a" PP.constant cst)

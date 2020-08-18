@@ -197,6 +197,7 @@ module Tree_abstraction = struct
     | "Test.external_call" -> Some C_TEST_EXTERNAL_CALL
     | "Test.get_storage" -> Some C_TEST_GET_STORAGE
     | "Test.assert_failure" -> Some C_TEST_ASSERT_FAILURE
+    | "Test.generate_address" -> Some C_TEST_GENERATE_ADDR
 
     | _ -> None
 

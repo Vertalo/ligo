@@ -1,17 +1,24 @@
 open Types
 
+let pp_ct : Format.formatter -> constant_val -> unit = fun ppf c ->
+  match c with
+  | C_unit -> Format.fprintf ppf "unit"
+  | C_bool t -> Format.fprintf ppf "%b : bool" t
+  | C_int z -> Format.fprintf ppf "%s : int" (Int.to_string z)
+  | C_nat n -> Format.fprintf ppf "%s : nat" (Int.to_string n)
+  | C_timestamp t -> Format.fprintf ppf "%a : timestamp" Z.pp_print t
+  | C_mutez m -> Format.fprintf ppf "%a : mutez" Tez.pp m
+  | C_string s -> Format.fprintf ppf "%s : string" s
+  | C_bytes b -> Format.fprintf ppf "%s : bytes" (Bytes.to_string b)
+  | C_address s -> Format.fprintf ppf "%s : address" s
+  | C_signature s -> Format.fprintf ppf "%s : signature" s
+  | C_key s -> Format.fprintf ppf "%s : key" s
+  | C_key_hash s -> Format.fprintf ppf "%s : key_hash" s
+  | C_chain_id s -> Format.fprintf ppf "%s : chain_id" s
+  | C_operation _ -> Format.fprintf ppf "_ : operation"
+
 let rec pp_value : value -> string = function
-  | V_Ct (C_int i) -> Format.asprintf "%a : int" Z.pp_print i
-  | V_Ct (C_nat n) -> Format.asprintf "%a : nat" Z.pp_print n
-  | V_Ct (C_string s) -> Format.asprintf "\"%s\" : string" s
-  | V_Ct (C_unit) -> Format.asprintf "unit"
-  | V_Ct (C_bool true) -> Format.asprintf "true"
-  | V_Ct (C_bool false) -> Format.asprintf "false"
-  | V_Ct (C_bytes b) -> Format.asprintf "0x%a : bytes" Hex.pp (Hex.of_bytes b)
-  | V_Ct (C_mutez i) -> Format.asprintf "%Ld : mutez" (Tez.to_mutez i)
-  | V_Ct (C_address s) -> Format.asprintf "\"%s\" : address" s
-  | V_Ct (C_timestamp t) -> Format.asprintf "+%a" Z.pp_print t
-  | V_Ct (_) -> Format.asprintf "TODO"
+  | V_Ct c -> Format.asprintf "%a" pp_ct c
   | V_Failure s -> Format.asprintf "\"%s\" : failure " s
   | V_Record recmap ->
     let content = LMap.fold (fun label field prev ->

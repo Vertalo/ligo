@@ -409,6 +409,9 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_TEST_ASSERT_FAILURE , [ V_Func_val {arg_binder=_ ; body ; env} ] ) ->
       let* failed = Try (eval_ligo body env) in
       return_ct (C_bool (Option.is_none failed))
+    | ( C_TEST_GENERATE_ADDR , [ V_Ct (C_unit) ] ) ->
+      let>> (pkh, h) = Generate_keys in
+      return @@ V_Record (LMap.of_list [ (Label "0",  pkh) ; (Label "1", h) ])
     | _ ->
       let () = Format.printf "%a\n" Ast_typed.PP.constant c in
       let () = List.iter ( fun e -> Format.printf "%s\n" (Ligo_interpreter.PP.pp_value e)) operands in

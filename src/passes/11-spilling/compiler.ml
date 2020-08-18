@@ -140,7 +140,8 @@ let compile_constant' : AST.constant' -> constant' = function
       | C_TEST_SET_BALANCE 
       | C_TEST_EXTERNAL_CALL
       | C_TEST_GET_STORAGE
-      | C_TEST_ASSERT_FAILURE ) as c ->
+      | C_TEST_ASSERT_FAILURE
+      | C_TEST_GENERATE_ADDR ) as c ->
     failwith (Format.asprintf "%a is only available for LIGO interpreter" PP.constant c)
 
 let rec compile_type (t:AST.type_expression) : (type_expression, spilling_error) result =

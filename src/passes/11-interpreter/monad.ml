@@ -37,6 +37,7 @@ module Command = struct
     | Implicit_account : string -> LT.value t 
     | Serialize_pack_data : 'a -> 'a t
     | Serialize_unpack_data : 'a -> 'a t
+    | Generate_keys : (LT.value * LT.value) t
     | Lift_tz_result : 'a Memory_proto_alpha.Alpha_environment.Error_monad.tzresult -> 'a t
     | Tez_compare_wrapped : LT.Tez.t * LT.Tez.t -> int t
     | Int_compare_wrapped : 'a Int_repr.num * 'a Int_repr.num -> int t
@@ -196,6 +197,12 @@ module Command = struct
       ok (LT.V_Ct (LT.C_address addr), ctxt)
     | Serialize_pack_data v -> ok (v,ctxt)
     | Serialize_unpack_data v -> ok (v,ctxt)
+    | Generate_keys ->
+      let pkh, _, _ = Tezos_crypto.Signature.generate_key () in
+      let s_addr = Tezos_crypto.Signature.Public_key_hash.to_b58check pkh in
+      let pkh = LT.V_Ct (LT.C_key_hash s_addr) in
+      let addr = LT.V_Ct (LT.C_address s_addr) in
+      ok ((pkh, addr), ctxt)
     | Parse_contract_for_script _ -> Trace.fail `TODO
     | Tez_compare_wrapped (x, y) ->
       ok (Memory_proto_alpha.Protocol.Script_ir_translator.wrap_compare LT.Tez.compare x y, ctxt)
