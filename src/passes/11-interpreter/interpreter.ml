@@ -317,13 +317,15 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_SENDER, [] ) -> let>> snd = Sender in return_ct @@ C_address snd
     | ( C_SOURCE, [] ) -> let>> src = Source in return_ct @@ C_address src
     | ( C_CHAIN_ID, [] ) -> let>> id = Chain_id in return_ct @@ C_bytes id
-    | ( C_CONTRACT_OPT , [ V_Ct (C_address addr) ] ) ->
+    | ( (C_CONTRACT_ENTRYPOINT_OPT | C_CONTRACT_OPT) , [ V_Ct (C_address addr) ] ) ->
+      (* For now contract_entrypoint does not perform extra checks
+         but if we hold contract types in the context, it is possible *)
       let>> v = Get_contract addr in
       ( match v with
         | Some v -> return (V_Construct ("Some", v))
         | None -> return (V_Construct ("None", V_Ct C_unit))
       )
-    | ( C_CONTRACT , [ V_Ct (C_address addr) ] ) ->
+    | ( (C_CONTRACT | C_CONTRACT_ENTRYPOINT) , [ V_Ct (C_address addr) ] ) ->
       let>> v = Get_contract addr in
       ( match v with
         | Some v -> return v
@@ -428,8 +430,6 @@ hash on key
 C_HASH_KEY
 
 need exts
-C_CONTRACT_ENTRYPOINT_OPT
-C_CONTRACT_ENTRYPOINT
 C_IMPLICIT_ACCOUNT
 
 C_BYTES_PACK
