@@ -4,6 +4,7 @@ type parameter = One | Two
 
 let addr1 = let (pkh,addr) = Test.generate_address () in addr
 let addr2 = let (pkh,addr) = Test.generate_address () in addr
+let addr3 = let (pkh,addr) = Test.generate_address () in addr
 
 let main_fail (action, store : parameter * storage) : return =
   (failwith "main fail !" : return)
@@ -28,6 +29,15 @@ let main2 (action, store : parameter * storage) : return =
 
 let main_self (action, store : parameter * (parameter contract option)) : operation list * (parameter contract option) =
   ( ([] : operation list), Some (Tezos.self "%default" : parameter contract) )
+
+let main_create_contract (action, store : parameter * address) : operation list * address =
+  let (op,addr) : operation * address = Tezos.create_contract
+    (fun (p, s : nat * string) -> (([] : operation list), s)) 
+    (None: key_hash option) 
+    10tz 
+    "hello world"
+  in
+  ([op], addr)
 
 
 let assert_failure =
@@ -72,3 +82,11 @@ let self =
   match c with
   | Some (addr) -> (Tezos.address addr = addr1)
   | None -> false
+
+let create_contract =
+  let unit_ = Test.inject_script addr3 main_create_contract addr3 in
+  let unit_ = Test.set_balance addr3 10tz in
+  let unit_ = Test.external_call addr3 (One:parameter) 1tz in
+  let addr_new : address = Test.get_storage addr3 in
+  let hello : string = Test.get_storage addr_new in
+  (hello = "hello world")

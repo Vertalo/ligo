@@ -353,6 +353,13 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
           return_ct C_unit
         | _ -> failwith "code does not return a pair nor fails"
       end
+    | ( C_CREATE_CONTRACT , [ code ; delegate ; V_Ct (C_mutez amt) ; storage ] ) ->
+      ignore delegate;
+      let>> s_addr = Generate_addr in
+      let>> () = Inject_script (s_addr, code, storage) in
+      let>> () = Set_balance (s_addr, amt) in
+      (* operations are kinda ignored for now, so return unit in place *)
+      return @@ V_Record (LMap.of_list [ (Label "0", V_Ct (C_unit)) ; (Label "1", V_Ct (C_address s_addr)) ])
     | ( C_ADDRESS , [ addr ] ) ->
       return addr
     | ( C_SELF , [ _ep ] ) ->
@@ -412,8 +419,10 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
       let* failed = Try (eval_ligo body env) in
       return_ct (C_bool (Option.is_none failed))
     | ( C_TEST_GENERATE_ADDR , [ V_Ct (C_unit) ] ) ->
-      let>> (pkh, h) = Generate_keys in
-      return @@ V_Record (LMap.of_list [ (Label "0",  pkh) ; (Label "1", h) ])
+      let>> s_addr = Generate_addr in
+      let pkh = LT.V_Ct (LT.C_key_hash s_addr) in
+      let addr = LT.V_Ct (LT.C_address s_addr) in
+      return @@ V_Record (LMap.of_list [ (Label "0",  pkh) ; (Label "1", addr) ])
     | _ ->
       let () = Format.printf "%a\n" Ast_typed.PP.constant c in
       let () = List.iter ( fun e -> Format.printf "%s\n" (Ligo_interpreter.PP.pp_value e)) operands in
@@ -430,8 +439,6 @@ hash on key
 C_HASH_KEY
 
 need exts
-C_IMPLICIT_ACCOUNT
-
 C_BYTES_PACK
 C_BYTES_UNPACK
 C_CHECK_SIGNATURE
