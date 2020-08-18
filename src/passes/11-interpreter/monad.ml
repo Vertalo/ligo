@@ -1,3 +1,5 @@
+let contract_failure = Misc.fail
+
 open Proto_alpha_utils.Memory_proto_alpha
 open Protocol
 open Trace
@@ -20,14 +22,15 @@ module Command = struct
     | Self : LT.value t
     | Get_script : string -> (LT.value * LT.value) option t
     | Get_contract : string -> LT.value option t
-    | External_call : string * LT.Tez.t -> unit t
-    | Internal_call : string * LT.Tez.t -> unit t
+    | External_call : string -> unit t
+    | Internal_call : string -> unit t
     | Update_storage : string * LT.value -> unit t
     | Get_storage : string -> LT.value t
     | Inject_script : string * LT.value * LT.value -> unit t
     | Set_now : Z.t -> unit t
     | Set_source : string -> unit t
     | Set_balance : string * LT.Tez.t -> unit t
+    | Credit_balance : string * LT.Tez.t -> unit t
     | Parse_contract_for_script : Alpha_context.Contract.t * string -> unit t
     | Now : Z.t t
     | Amount : LT.Tez.t t
@@ -103,19 +106,8 @@ module Command = struct
         ok @@ (Some (LT.V_Ct (LT.C_address addr)), ctxt)
       else
         ok @@ (None, ctxt)
-    | External_call (addr, amt) ->
-      let aux : Mini_proto.state option -> Mini_proto.state option = fun state_opt ->
-        match state_opt with
-        | Some state ->
-          let script_balance =
-            Proto_alpha_utils.Trace.trace_alpha_tzresult (fun _ -> `TODO) @@
-            LT.Tez.(state.script_balance +? amt) in
-          let script_balance = match script_balance with Ok (x,_) -> x | Error _ -> failwith "TODO" in
-          Some { state with script_balance }
-        | None -> failwith "EXTERNAL CALL DESTINATION UNKNOWN" (* TODO *)
-      in
-      let contracts = Mini_proto.StateMap.update (Address addr) aux ctxt.contracts in
-      let contract = Mini_proto.StateMap.find (Address addr) contracts in
+    | External_call addr ->
+      let contract = Mini_proto.StateMap.find (Address addr) ctxt.contracts in
       let%bind self =
         Proto_alpha_utils.Trace.trace_alpha_tzresult (fun _ -> `TODO) @@
         Alpha_context.Contract.of_b58check addr in
@@ -124,21 +116,9 @@ module Command = struct
           self ;
           payer = ctxt.step_constants.source ;
           balance = contract.script_balance } in
-      let ctxt : Mini_proto.t = { contracts ; step_constants } in
-      ok ( (), ctxt)
-    | Internal_call (addr, amt) ->
-      let aux : Mini_proto.state option -> Mini_proto.state option = fun state_opt ->
-        match state_opt with
-        | Some state ->
-          let script_balance =
-            Proto_alpha_utils.Trace.trace_alpha_tzresult (fun _ -> `TODO) @@
-            LT.Tez.(state.script_balance +? amt) in
-          let script_balance = match script_balance with Ok (x,_) -> x | Error _ -> failwith "TODO" in
-          Some { state with script_balance }
-        | None -> failwith "EXTERNAL CALL DESTINATION UNKNOWN" (* TODO *)
-      in
-      let contracts = Mini_proto.StateMap.update (Address addr) aux ctxt.contracts in
-      let contract = Mini_proto.StateMap.find (Address addr) contracts in
+      ok ( (), {ctxt with step_constants})
+    | Internal_call addr ->
+      let contract = Mini_proto.StateMap.find (Address addr) ctxt.contracts in
       let%bind self =
         Proto_alpha_utils.Trace.trace_alpha_tzresult (fun _ -> `TODO) @@
         Alpha_context.Contract.of_b58check addr in
@@ -147,8 +127,7 @@ module Command = struct
           self ;
           source = ctxt.step_constants.self ;
           balance = contract.script_balance } in
-      let ctxt : Mini_proto.t = { contracts ; step_constants } in
-      ok ( (), ctxt)
+      ok ( (), {ctxt with step_constants})
     | Update_storage (addr, storage) ->
       let aux : Mini_proto.state option -> Mini_proto.state option = fun state_opt ->
         match state_opt with
@@ -183,6 +162,19 @@ module Command = struct
       in
       let contracts = Mini_proto.StateMap.update (Address addr) aux ctxt.contracts in
       ok ((), {ctxt with contracts})
+    | Credit_balance (addr, amt) ->
+      let aux : Mini_proto.state option -> Mini_proto.state option = fun state_opt ->
+        match state_opt with
+        | Some state ->
+          let script_balance =
+            Proto_alpha_utils.Trace.trace_alpha_tzresult (fun _ -> `TODO) @@
+            LT.Tez.(state.script_balance +? amt) in
+          let script_balance = match script_balance with Ok (x,_) -> x | Error _ -> contract_failure "Balance overflow (?)" in
+          Some { state with script_balance }
+        | None -> failwith "EXTERNAL CALL DESTINATION UNKNOWN" (* TODO *)
+      in
+      let contracts = Mini_proto.StateMap.update (Address addr) aux ctxt.contracts in
+      ok ((), { ctxt with contracts})
     | Now -> ok (LT.Timestamp.to_zint ctxt.step_constants.now, ctxt)
     | Amount -> ok (ctxt.step_constants.amount, ctxt)
     | Balance -> ok (ctxt.step_constants.balance, ctxt)
@@ -258,7 +250,7 @@ let rec eval
     try
       let%bind (ret, ctxt) = eval e ctxt log in
       ok (Some ret, ctxt)
-    with LT.Temporary_hack _s -> ok (None, ctxt)
+    with LT.Temporary_hack _s -> ok (None, ctxt) (* This is a "contract failure" *)
     end
   | Call command -> Command.eval command ctxt log
   | Return v -> ok (v, ctxt)
@@ -266,11 +258,6 @@ let rec eval
     let%bind x = x in
     ok (x, ctxt)
   (* | Trace (error, e') -> trace (Script_interpreter_error error) (eval e' ctxt log) *)
-
-(* module Let_syntax = struct
-  let bind m ~f = Bind (m, f)
-  module Open_on_rhs_bind = struct end
-end *)
 
 let return (x: 'a) : 'a t = Return x
 let call (command : 'a Command.t) : 'a t = Call command

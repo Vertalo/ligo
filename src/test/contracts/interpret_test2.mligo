@@ -63,7 +63,6 @@ let test1 =
   let unit_ = Test.set_source addr1 in
 
   let unit_ = Test.external_call addr1 (One:parameter) 1tz in
-  (* TODO : Balance aren't checked *)
 
   let a : int  = Test.get_storage addr1 in
   let b : int  = Test.get_storage addr2 in

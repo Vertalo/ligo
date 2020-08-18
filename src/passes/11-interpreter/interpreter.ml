@@ -339,19 +339,26 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
           | V_Func_val {arg_binder ; body ; env} ->
             let param_storage = V_Record (LMap.of_list [ (Label "0", param) ; (Label "1", storage) ]) in
             let f_env' = Env.extend env (arg_binder, param_storage) in
-            Try (eval_ligo body f_env')
+            Try (
+              let>> () = Credit_balance (addr, amt) in
+              let>> () = Internal_call addr in
+              let* res = eval_ligo body f_env' in
+              begin
+              match res with
+                | V_Record v ->
+                  let new_st = LMap.find (Label "1") v in
+                  let>> () = Update_storage (addr, new_st) in
+                  return_ct C_unit
+                | _ -> failwith "code does not return a pair nor fails"
+              end
+            )
           | _ -> failwith "code is not a function"
         )
       in
       begin
         match result with
         | None -> Misc.fail "called contract failed"
-        | Some (V_Record v) ->
-          let>> () = External_call (addr, amt) in
-          let new_st = LMap.find (Label "1") v in
-          let>> () = Update_storage (addr, new_st) in
-          return_ct C_unit
-        | _ -> failwith "code does not return a pair nor fails"
+        | Some r -> return r
       end
     | ( C_CREATE_CONTRACT , [ code ; delegate ; V_Ct (C_mutez amt) ; storage ] ) ->
       ignore delegate;
@@ -393,7 +400,8 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
             let param_storage = V_Record (LMap.of_list [ (Label "0", param) ; (Label "1", storage) ]) in
             let f_env' = Env.extend env (arg_binder, param_storage) in
             Try (
-              let>> () = External_call (addr, amt) in
+              let>> () = Credit_balance (addr, amt) in
+              let>> () = External_call addr in
               let* res = eval_ligo body f_env' in
               begin
               match res with

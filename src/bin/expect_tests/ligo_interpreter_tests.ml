@@ -62,9 +62,9 @@ let%expect_test _ =
 
   run_ligo_good [ "ligo-interpret" ; contract "interpret_test2.mligo" ; "--amount=12" ; "--balance=13" ] ;
   [%expect {|
-    val addr1 = tz1cZq7mGpfHXcqBzo7WSEbXZqZhttms4QwS : address
-    val addr2 = tz1b7YPWMny5J6jbhDzFSkAM1bvVdKQXoSaU : address
-    val addr3 = tz1WpyNnuXsrF6d5XPxC7PYjccM9PmuN3XX8 : address
+    val addr1 = tz1dAnrWuxkL1hgp2WkT4RiSvxfoSWHL1Bkp : address
+    val addr2 = tz1bF4ADvtqLQNRAAaNZU2R6Wsdufwbwnc4Y : address
+    val addr3 = tz1XoS9CevtwbRPj2a3swQLmQUYQ4N58jWy4 : address
     val main_fail = <fun>
     val main1 = <fun>
     val main2 = <fun>
