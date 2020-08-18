@@ -157,7 +157,7 @@ let of_yojson x =
   | `Assoc ["byte", byte;
             "point_num", `Int point_num;
             "point_bol", `Int point_bol] ->
-      Result.map (fun byte -> make ~byte ~point_num ~point_bol) (position_of_yojson byte)
+      Stdlib.Result.map (fun byte -> make ~byte ~point_num ~point_bol) (position_of_yojson byte)
   | _ ->
       Utils.error_yojson_format "{byte: Lexing.position, point_num: int, point_bol: int}\nwhere Lexing.position is {pos_fname: string, pos_lnum: int, pos_bol: int, pos_cnum: int}"
 
