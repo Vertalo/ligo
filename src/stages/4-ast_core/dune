@@ -6,7 +6,6 @@
     tezos-utils
     stage_common
     ast_sugar
-    adt_generator
     ppx_deriving_yojson.runtime
   )
   (preprocess

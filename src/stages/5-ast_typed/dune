@@ -6,7 +6,6 @@
     tezos-utils
     ast_core ; Is that a good idea?
     stage_common
-    adt_generator
     UnionFind
     ppx_deriving_yojson.runtime
   )
