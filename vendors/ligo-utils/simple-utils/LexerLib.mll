@@ -207,6 +207,18 @@ and 'token sync = {
   state  : 'token state
 }
 
+type 'token scanner = 'token state -> Lexing.lexbuf -> 'token state
+type 'token cut = thread * 'token state -> 'token state
+
+(**)
+
+type 'token client = {
+  mk_string   : 'token cut;
+  mk_verbatim : 'token cut;
+  mk_eof      : 'token scanner;
+  callback    : 'token scanner
+}
+
 let mk_state ~units ~markup ~comments ~window ~last ~pos ~decoder ~supply
              ?block ?line () : _ state =
   object (self)
@@ -414,7 +426,7 @@ let open_token_stream ?line ?block ~scan
         token in
 
   match lexbuf_from_input input with
-    Ok (buffer, close) ->
+    Stdlib.Ok (buffer, close) ->
       let () =
         match input with
           File path when path <> "" -> reset ~file:path buffer
@@ -441,18 +453,20 @@ type error =
 
 exception Error of error Region.reg
 
+let sprintf = Printf.sprintf
+
 let error_to_string = function
   Invalid_utf8_sequence ->
     "Invalid UTF-8 sequence."
 | Undefined_escape_sequence ->
-   "Undefined escape sequence.\n\
-    Hint: Remove or replace the sequence."
+    "Undefined escape sequence.\n\
+     Hint: Remove or replace the sequence."
 | Unterminated_string ->
     "Unterminated string.\n\
-    Hint: Close with double quotes."
+     Hint: Close with double quotes."
 | Unterminated_verbatim ->
     "Unterminated verbatim.\n\
-    Hint: Close with \"|}\"."
+     Hint: Close with \"|}\"."
 | Unterminated_comment ending ->
     sprintf "Unterminated comment.\n\
              Hint: Close with \"%s\"." ending
@@ -464,9 +478,8 @@ let error_to_string = function
     "Invalid character in string.\n\
      Hint: Remove or replace the character."
 
-let format_error ?(offsets=true) mode Region.{region; value} ~file =
-  let msg   = error_to_string value
-  and reg   = region#to_string ~file ~offsets mode in
+let format_error ?(offsets=true) mode ~file Region.{region; value=msg} =
+  let reg   = region#to_string ~file ~offsets mode in
   let value = sprintf "Lexical error %s:\n%s\n" reg msg
   in Region.{value; region}
 
@@ -564,30 +577,28 @@ let block_comment_closings =
 
 let line_comments =
   pascaligo_line_comment
-  | cameligo_line_comment
-  | reasonligo_line_comment
-  | michelson_line_comment
+| cameligo_line_comment
+| reasonligo_line_comment
+| michelson_line_comment
 
 (* SCANNERS *)
 
-rule scan mk_str mk_verb callback state = parse
+rule scan client state = parse
   (* Markup *)
 
-  nl     { scan mk_str mk_verb callback (state#push_newline lexbuf) lexbuf }
-| ' '+   { scan mk_str mk_verb callback (state#push_space   lexbuf) lexbuf }
-| '\t'+  { scan mk_str mk_verb callback (state#push_tabs    lexbuf) lexbuf }
+  nl    { scan client (state#push_newline lexbuf) lexbuf }
+| ' '+  { scan client (state#push_space   lexbuf) lexbuf }
+| '\t'+ { scan client (state#push_tabs    lexbuf) lexbuf }
 
   (* Strings *)
 
 | '"'  { let {region; state; _} = state#sync lexbuf in
-         let thread             = mk_thread region in
-         let thread, state      = scan_string thread state lexbuf
-         in Stdlib.Ok (mk_str thread state lexbuf) }
+         let thread             = mk_thread region
+         in  scan_string thread state lexbuf |> client.mk_string }
 
 | "{|" { let {region; state; _} = state#sync lexbuf in
-         let thread             = mk_thread region in
-         let thread, state      = scan_verbatim thread state lexbuf
-         in Stdlib.Ok (mk_verb thread state lexbuf) }
+         let thread             = mk_thread region
+         in scan_verbatim thread state lexbuf |> client.mk_verbatim }
 
   (* Comment *)
 
@@ -597,10 +608,11 @@ rule scan mk_str mk_verb callback state = parse
         let {region; state; _} = state#sync lexbuf in
         let thread             = mk_thread region in
         let thread             = thread#push_string lexeme in
-        let thread, state      = scan_block block thread state lexbuf
-        in callback (state#push_block thread) lexbuf
+        let thread, state      = scan_block block thread state lexbuf in
+        let state              = state#push_block thread
+        in scan client state lexbuf
     | Some _ | None -> (* Not a comment for this LIGO syntax *)
-        rollback lexbuf; callback state lexbuf }
+        rollback lexbuf; client.callback state lexbuf }
 
 | line_comments as lexeme {
     match state#line with
@@ -608,20 +620,24 @@ rule scan mk_str mk_verb callback state = parse
         let {region; state; _} = state#sync lexbuf in
         let thread             = mk_thread region in
         let thread             = thread#push_string lexeme in
-        let thread, state      = scan_line thread state lexbuf
-        in callback (state#push_line thread) lexbuf
+        let thread, state      = scan_line thread state lexbuf in
+        let state              = state#push_line thread
+        in scan client state lexbuf
     | Some _ | None -> (* Not a comment for this LIGO syntax *)
-        rollback lexbuf; callback state lexbuf }
+        rollback lexbuf; client.callback state lexbuf }
 
   (* Line preprocessing directives (from #include) *)
 
 | '#' blank* (natural as line) blank+ '"' (string as file) '"' {
     let state = line_preproc line file scan_flags state lexbuf
-    in scan mk_str mk_verb callback state lexbuf }
+    in scan client state lexbuf }
 
   (* Other tokens *)
 
-| _ { rollback lexbuf; callback state lexbuf }
+| eof { client.mk_eof state lexbuf }
+
+| _ { rollback lexbuf;
+      client.callback state lexbuf (* May raise exceptions *) }
 
 (* Block comments
 
@@ -745,33 +761,26 @@ and scan_flags acc state = parse
 
 (* Scanner called first *)
 
-and init mk_str mk_verb callback state = parse
+and init client state = parse
   utf8_bom { let state = state#push_bom lexbuf in
-             scan mk_str mk_verb callback state lexbuf }
+             scan client state lexbuf }
 | _        { rollback lexbuf;
-             scan mk_str mk_verb callback state lexbuf  }
+             scan client state lexbuf  }
 
 (* END LEXER DEFINITION *)
 
 {
 (* START TRAILER *)
 
-type 'token cut =
-  thread -> 'token state -> Lexing.lexbuf -> 'token state
-
-type 'token scanner =
-  'token state -> Lexing.lexbuf -> ('token state, error) Stdlib.result
-
-let mk_scan ~(mk_str:'token cut) ~(mk_verb:'token cut)
-            ~(callback:'token scanner) =
+let mk_scan client =
   let first_call = ref true in
   fun state lexbuf ->
     if   !first_call
     then begin
           first_call := false;
-          init mk_str mk_verb callback state lexbuf
-        end
-    else scan mk_str mk_verb callback state lexbuf
+          init client state lexbuf
+         end
+    else scan client state lexbuf
 
 (* END TRAILER *)
 }

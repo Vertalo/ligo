@@ -149,32 +149,34 @@ and 'token sync = {
 
 (* LEXING COMMENTS AND STRINGS *)
 
-(* For the lexer in common to all LIGO syntaxes *)
+(* Errors *)
 
-type error =
-  Invalid_utf8_sequence
-| Unterminated_comment of string
-| Unterminated_string
-| Unterminated_verbatim
-| Broken_string
-| Invalid_character_in_string
-| Undefined_escape_sequence
+type error
 
 exception Error of error Region.reg
 
-type 'token cut =
-  thread -> 'token state -> Lexing.lexbuf -> 'token state
+val error_to_string : error -> string
 
-type 'token scanner =
-  'token state -> Lexing.lexbuf -> ('token state, error) Stdlib.result
+val format_error :
+  ?offsets:bool ->
+  [`Byte | `Point] ->
+  file:bool ->
+  string Region.reg ->
+  string Region.reg
 
-val mk_scan :
-  mk_str:('token cut) ->
-  mk_verb:('token cut) ->
-  callback:('token scanner) ->
-  'token state ->
-  Lexing.lexbuf ->
-  ('token state, error) Stdlib.result
+type 'token scanner = 'token state -> Lexing.lexbuf -> 'token state
+type 'token cut = thread * 'token state -> 'token state
+
+type 'token client = {
+  mk_string   : 'token cut;
+  mk_verbatim : 'token cut;
+  mk_eof      : 'token scanner;
+  callback    : 'token scanner
+}
+
+(* Making a scanner. May raise [Error] above. *)
+
+val mk_scan : 'token client -> 'token scanner
 
 (* LEXER INSTANCE *)
 
@@ -189,6 +191,8 @@ val mk_scan :
        recognised token.
      * a function [get_file] that returns the name of the file being
        scanned (empty string if [stdin]).
+
+   The function [read] can raise an exception [Error].
 
    Note that a module [Token] is exported too, because the signature
    of the exported functions depend on it.

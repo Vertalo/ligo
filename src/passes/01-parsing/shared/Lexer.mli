@@ -104,13 +104,6 @@ module type TOKEN =
 
     exception Error of error Region.reg
 
-    val format_error :
-      ?offsets:bool ->
-      [`Byte | `Point] ->
-      error Region.reg ->
-      file:bool ->
-      string Region.reg
-
     val check_right_context :
       token ->
       (Lexing.lexbuf -> (Markup.t list * token) option) ->
@@ -129,17 +122,13 @@ module type S =
 
     val scan : token LexerLib.state -> Lexing.lexbuf -> token LexerLib.state
 
-    (* Errors (specific to the generic lexer, not to the tokens) *)
+    (* Errors *)
 
     type error
 
     val error_to_string : error -> string
 
     exception Error of error Region.reg
-
-    val format_error :
-      ?offsets:bool -> [`Byte | `Point] ->
-      error Region.reg -> file:bool -> string Region.reg
   end
 
 (* The functorised interface

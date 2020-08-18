@@ -172,10 +172,6 @@ val error_to_string : error -> string
 
 exception Error of error Region.reg
 
-val format_error :
-  ?offsets:bool -> [`Byte | `Point] ->
-  error Region.reg -> file:bool -> string Region.reg
-
 val check_right_context :
   token ->
   (Lexing.lexbuf -> (Markup.t list * token) option) ->

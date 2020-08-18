@@ -168,27 +168,33 @@ module Make (Lexer: Lexer.S)
     let apply lexer_inst parser =
       (* Calling the parser and filtering errors *)
 
+      let format error message =
+        let file =
+          lexer_inst.LexerLib.buffer.Lexing.lex_curr_p.Lexing.pos_fname
+        and error' = Region.{region=error.region; value=message}
+        in LexerLib.format_error
+             ~offsets:SubIO.options#offsets
+             SubIO.options#mode
+             ~file:(file <> "")
+             error' in
+
       match parser lexer_inst with
         Stdlib.Error _ as error -> error
       | Stdlib.Ok _ as node -> node
 
       (* Lexing errors *)
 
-      | exception Lexer.Error err ->
-          let file =
-            lexer_inst.LexerLib.buffer.Lexing.lex_curr_p.Lexing.pos_fname in
-          let error = Lexer.format_error
-                        ~offsets:SubIO.options#offsets
-                        SubIO.options#mode err ~file:(file <> "")
-          in Stdlib.Error error
+      | exception LexerLib.Error error ->
+          let message = LexerLib.error_to_string error.value
+          in Stdlib.Error (format error message)
 
-      | exception Lexer.Token.Error err ->
-          let file =
-            lexer_inst.LexerLib.buffer.Lexing.lex_curr_p.Lexing.pos_fname in
-          let error = Lexer.Token.format_error
-                        ~offsets:SubIO.options#offsets
-                        SubIO.options#mode err ~file:(file <> "")
-          in Stdlib.Error error
+      | exception Lexer.Error error ->
+          let message = Lexer.error_to_string error.value
+          in Stdlib.Error (format error message)
+
+      | exception Lexer.Token.Error error ->
+          let message = Lexer.Token.error_to_string error.value
+          in Stdlib.Error (format error message)
 
       (* Incremental API of Menhir *)
 

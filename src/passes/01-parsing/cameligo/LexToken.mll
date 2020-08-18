@@ -551,12 +551,6 @@ let error_to_string = function
 
 exception Error of error Region.reg
 
-let format_error ?(offsets=true) mode Region.{region; value} ~file =
-  let msg = error_to_string value
-  and reg = region#to_string ~file ~offsets mode in
-  let value = sprintf "Lexical error %s:\n%s\n" reg msg
-  in Region.{value; region}
-
 let fail region value = raise (Error Region.{region; value})
 
 let check_right_context token next_token buffer : unit =

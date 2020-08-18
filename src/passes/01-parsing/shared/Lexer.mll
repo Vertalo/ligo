@@ -3,7 +3,7 @@
 {
 (* START HEADER *)
 
-[@@@warning "-42"]
+[@@@warning "-42-45"]
 
 (* VENDOR DEPENDENCIES *)
 
@@ -68,10 +68,6 @@ module type TOKEN =
 
     exception Error of error Region.reg
 
-    val format_error :
-      ?offsets:bool -> [`Byte | `Point] ->
-      error Region.reg -> file:bool -> string Region.reg
-
     val check_right_context :
       token ->
       (Lexing.lexbuf -> (Markup.t list * token) option) ->
@@ -99,10 +95,6 @@ module type S =
     val error_to_string : error -> string
 
     exception Error of error Region.reg
-
-    val format_error :
-      ?offsets:bool -> [`Byte | `Point] ->
-      error Region.reg -> file:bool -> string Region.reg
   end
 
 module Make (Token : TOKEN) : (S with module Token = Token) =
@@ -141,19 +133,13 @@ module Make (Token : TOKEN) : (S with module Token = Token) =
 
     exception Error of error Region.reg
 
-    let format_error ?(offsets=true) mode Region.{region; value} ~file =
-      let msg   = error_to_string value
-      and reg   = region#to_string ~file ~offsets mode in
-      let value = sprintf "Lexical error %s:\n%s\n" reg msg
-      in Region.{value; region}
-
     let fail region value = raise (Error Region.{region; value})
 
     (* TOKENS *)
 
     (* Making tokens *)
 
-    let mk_string thread state =
+    let mk_string (thread, state) =
       let start  = thread#opening#start in
       let stop   = state#pos in
       let region = Region.make ~start ~stop in
@@ -161,7 +147,7 @@ module Make (Token : TOKEN) : (S with module Token = Token) =
       let token  = Token.mk_string lexeme region
       in state#enqueue token
 
-    let mk_verbatim thread state =
+    let mk_verbatim (thread, state) =
       let start  = thread#opening#start in
       let stop   = state#pos in
       let region = Region.make ~start ~stop in
@@ -335,16 +321,16 @@ rule scan state = parse
 | "[@"  (attr as a) "]"  { mk_attr "[@"  a state lexbuf }
 | "[@@" (attr as a) "]"  { mk_attr "[@@" a state lexbuf }
 | "[%"  (attr as l)      { mk_lang       l state lexbuf }
-| eof                    { mk_eof          state lexbuf }
-| _ as c                 { let {region; _} = state#sync lexbuf
-                           in fail region (Unexpected_character c) }
+| _ as c                 { let LexerLib.{region; _} = state#sync lexbuf
+                           in fail region (Unexpected_character c)      }
 
 (* END LEXER DEFINITION *)
 
 {
 (* START TRAILER *)
 
-let scan = LexerLib.mk_scan mk_string mk_verbatim scan
+let client = LexerLib.{mk_string; mk_verbatim; mk_eof; callback=scan}
+let scan   = LexerLib.mk_scan client
 
 end (* of functor [Make] in HEADER *)
 

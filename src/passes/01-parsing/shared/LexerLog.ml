@@ -83,21 +83,27 @@ module Make (Lexer: Lexer.S) : (S with module Lexer = Lexer) =
         Ok LexerLib.{read; buffer; close; _} ->
           let log = output_token ~offsets mode command stdout
           and close_all () = flush_all (); close () in
+          let format error message =
+            LexerLib.format_error
+              ~offsets
+              mode
+              ~file:true
+              Region.{error with value=message} in
           let rec iter () =
             match read ~log buffer with
               token ->
                 if   Token.is_eof token
                 then Stdlib.Ok ()
                 else iter ()
+            | exception LexerLib.Error error ->
+                let message = LexerLib.error_to_string error.value
+                in Stdlib.Error (format error message)
             | exception Lexer.Token.Error error ->
-                let msg =
-                  Lexer.Token.format_error
-                    ~offsets mode ~file:true error
-                in Stdlib.Error msg
+                let message = Lexer.Token.error_to_string error.value
+                in Stdlib.Error (format error message)
             | exception Lexer.Error error ->
-                let msg =
-                  Lexer.format_error ~offsets mode ~file:true error
-                in Stdlib.Error msg in
+                let message = Lexer.error_to_string error.value
+                in Stdlib.Error (format error message) in
             let result = iter ()
             in close_all (); result
         | Stdlib.Error (LexerLib.File_opening msg) ->

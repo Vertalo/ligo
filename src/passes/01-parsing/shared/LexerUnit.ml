@@ -58,31 +58,31 @@ module Make (IO: IO) (Lexer: Lexer.S) =
             with
               Ok LexerLib.{read; buffer; close; _} ->
                 let close_all () = flush_all (); close () in
+                let file =
+                  match IO.options#input with
+                    None | Some "-" -> false
+                  |         Some _  -> true in
+                let format error message =
+                  LexerLib.format_error
+                    ~offsets:IO.options#offsets
+                    IO.options#mode
+                    ~file
+                    Region.{error with value=message} in
                 let rec read_tokens tokens =
                   match read ~log:(fun _ _ -> ()) buffer with
                     token ->
                       if   Lexer.Token.is_eof token
                       then Stdlib.Ok (List.rev tokens)
                       else read_tokens (token::tokens)
+                  | exception LexerLib.Error error ->
+                      let message = LexerLib.error_to_string error.value
+                      in Stdlib.Error (format error message)
                   | exception Lexer.Token.Error error ->
-                      let file =
-                        match IO.options#input with
-                          None | Some "-" -> false
-                        |         Some _  -> true in
-                      let msg =
-                        Lexer.Token.format_error
-                          ~offsets:IO.options#offsets
-                          IO.options#mode ~file error
-                      in Stdlib.Error msg
+                      let message = Lexer.Token.error_to_string error.value
+                      in Stdlib.Error (format error message)
                   | exception Lexer.Error error ->
-                      let file =
-                        match IO.options#input with
-                          None | Some "-" -> false
-                        |         Some _  -> true in
-                      let msg =
-                        Lexer.format_error ~offsets:IO.options#offsets
-                                           IO.options#mode ~file error
-                      in Stdlib.Error msg in
+                      let message = Lexer.error_to_string error.value
+                      in Stdlib.Error (format error message) in
                 let result = read_tokens []
                 in close_all (); result
             | Stdlib.Error (LexerLib.File_opening msg) ->
