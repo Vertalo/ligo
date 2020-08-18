@@ -442,7 +442,6 @@ need exts
 C_BYTES_PACK
 C_BYTES_UNPACK
 C_CHECK_SIGNATURE
-C_ADDRESS
 
 *)
 
@@ -599,6 +598,6 @@ let eval : ?options:options -> Ast_typed.program -> (string , _) result =
     | Ast_typed.Declaration_type _ ->
       ok (pp , top_env, ctxt)
   in
-  let%bind (res,_,ctxt) = bind_fold_list aux ("",Env.empty_env,init_ctxt) prg in
-  let res = res ^ "\n" ^ Ligo_interpreter.PP.pp_context ctxt in
+  let%bind (res,_,_ctxt) = bind_fold_list aux ("",Env.empty_env,init_ctxt) prg in
+  (* let res = res ^ "\n" ^ Ligo_interpreter.PP.pp_context ctxt in *)
   ok @@ res

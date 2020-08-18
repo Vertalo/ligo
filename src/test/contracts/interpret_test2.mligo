@@ -2,9 +2,12 @@ type storage = int
 type return = operation list * storage
 type parameter = One | Two
 
-let addr1 = let (pkh,addr) = Test.generate_address () in addr
-let addr2 = let (pkh,addr) = Test.generate_address () in addr
-let addr3 = let (pkh,addr) = Test.generate_address () in addr
+// let addr1 = let (pkh,addr) = Test.generate_address () in addr
+// let addr2 = let (pkh,addr) = Test.generate_address () in addr
+// let addr3 = let (pkh,addr) = Test.generate_address () in addr
+let addr1 = ("tz1dAnrWuxkL1hgp2WkT4RiSvxfoSWHL1Bkp" : address)
+let addr2 = ("tz1bF4ADvtqLQNRAAaNZU2R6Wsdufwbwnc4Y" : address)
+let addr3 = ("tz1XoS9CevtwbRPj2a3swQLmQUYQ4N58jWy4" : address)
 
 let main_fail (action, store : parameter * storage) : return =
   (failwith "main fail !" : return)
@@ -65,15 +68,6 @@ let test1 =
   let a : int  = Test.get_storage addr1 in
   let b : int  = Test.get_storage addr2 in
   (a = 1) && (b = 4)
-
-let contract_vs_address =
-  let unit_ = Test.inject_script addr2 main2 0 in
-  let c : parameter contract option = Tezos.get_contract_opt addr2 in
-  let addr = match c with
-    | Some (c) -> c
-    | None     -> (failwith ("Contract not found") : parameter contract)
-  in
-  addr
 
 let self =
   let unit_ = Test.inject_script addr1 main_self (None : parameter contract option) in

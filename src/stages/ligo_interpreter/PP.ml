@@ -7,9 +7,9 @@ let pp_ct : Format.formatter -> constant_val -> unit = fun ppf c ->
   | C_int z -> Format.fprintf ppf "%s : int" (Int.to_string z)
   | C_nat n -> Format.fprintf ppf "%s : nat" (Int.to_string n)
   | C_timestamp t -> Format.fprintf ppf "%a : timestamp" Z.pp_print t
-  | C_mutez m -> Format.fprintf ppf "%a : mutez" Tez.pp m
-  | C_string s -> Format.fprintf ppf "%s : string" s
-  | C_bytes b -> Format.fprintf ppf "%s : bytes" (Bytes.to_string b)
+  | C_mutez m -> Format.fprintf ppf "%Ld : mutez" (Tez.to_mutez m)
+  | C_string s -> Format.fprintf ppf "\"%s\" : string" s
+  | C_bytes b -> Format.fprintf ppf "0x%a : bytes" Hex.pp (Hex.of_bytes b)
   | C_address s -> Format.fprintf ppf "%s : address" s
   | C_signature s -> Format.fprintf ppf "%s : signature" s
   | C_key s -> Format.fprintf ppf "%s : key" s
