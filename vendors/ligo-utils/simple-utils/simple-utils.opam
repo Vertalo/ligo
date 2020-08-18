@@ -7,5 +7,5 @@ authors      : "Galfour, Christian Rinderknecht"
 license      : "MIT"
 homepage     : "https://gitlab.com/ligolang/ligo-utils"
 bug-reports  : "https://gitlab.com/ligolang/ligo-utils/issues"
-depends      : ["dune" "base" "yojson" "ppx_let"]
+depends      : ["dune" "base" "yojson" "ppx_let" "uutf"]
 build        : [["dune" "build" "-p" name]]
