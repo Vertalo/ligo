@@ -5,9 +5,10 @@
     simple-utils
     tezos-utils
     stage_common
+    ppx_deriving_yojson.runtime
   )
   (preprocess
-    (pps ppx_let bisect_ppx --conditional)
+    (pps ppx_let ppx_deriving_yojson bisect_ppx --conditional)
   )
   (flags (:standard -open Simple_utils ))
 )

@@ -511,7 +511,7 @@ and no_loc_children : Format.formatter -> Location.t -> typer_error -> unit = fu
       Location.pp exploc
   | _ -> ()
 
-let rec error_jsonformat : typer_error -> Yojson.t = fun a ->
+let rec error_jsonformat : typer_error -> Yojson.Safe.t = fun a ->
   let json_error ~stage ~content =
     `Assoc [
       ("status", `String "error") ;

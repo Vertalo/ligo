@@ -15,13 +15,13 @@ let definitions : Format.formatter -> def_map -> unit = fun f dm ->
   let pp_def f = List.iter (fun (k,v) -> Format.fprintf f "(%s -> %s) %a@ " k (get_def_name v) Location.pp (get_range v)) in
   Format.fprintf f "@[<v>Variable definitions:@ %aType definitions:@ %a@]" pp_def variables pp_def types
 
-let def_to_json : def -> Yojson.t = function
+let def_to_json : def -> Yojson.Safe.t = function
   | Variable { name ; range ; body_range ; t ; references=_ } ->
     `Assoc [
       ("name", `String name);
       ("range", Location.pp_json range);
       ("body_range", Location.pp_json body_range);
-      ("t", match t with None -> `Null | Some t -> Ast_typed.PP_json.Yojson.type_expression t );
+      ("t", match t with None -> `Null | Some t -> Ast_typed.type_expression_to_yojson t );
       ("references", `Null);
     ]
   | Type { name ; range ; body_range ; content=_ } ->
@@ -32,7 +32,7 @@ let def_to_json : def -> Yojson.t = function
       ("content", `String "TODO" );
     ]
 
-let defs_json d : Yojson.t =
+let defs_json d : Yojson.Safe.t =
   let get_defs d = 
     let (v,tv) = List.partition (fun (_,def) -> match def with Variable _ -> true | Type _ -> false) (Def_map.to_kv_list d) in
     [ 
@@ -42,7 +42,7 @@ let defs_json d : Yojson.t =
   in
   `Assoc (get_defs d)
 
-let scopes_json s : Yojson.t = `List (
+let scopes_json s : Yojson.Safe.t = `List (
   List.map
     (fun scope ->
       let sd = Def_map.to_kv_list scope.env in

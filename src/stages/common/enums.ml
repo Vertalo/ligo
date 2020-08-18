@@ -27,6 +27,7 @@ type type_constant =
   | TC_michelson_pair_left_comb
   | TC_michelson_or_right_comb
   | TC_michelson_or_left_comb
+  [@@deriving yojson]
 
 type literal =
   | Literal_unit
@@ -42,6 +43,7 @@ type literal =
   | Literal_key_hash of string
   | Literal_chain_id of string
   | Literal_operation of packed_internal_operation
+  [@@deriving yojson]
 
 type constant' =
   | C_INT
@@ -161,3 +163,4 @@ type constant' =
   | C_CONVERT_TO_RIGHT_COMB
   | C_CONVERT_FROM_LEFT_COMB
   | C_CONVERT_FROM_RIGHT_COMB
+  [@@deriving yojson]

@@ -11,7 +11,9 @@ include Stage_common.Enums (*@ follow ../common/enums.ml *)
 (*@ typeclass poly_set       comparable *)
 
 type te_lmap = row_element label_map
+  [@@deriving yojson]
 and type_meta = ast_core_type_expression option
+  [@@deriving yojson]
 
 and type_content =
   | T_sum of te_lmap
@@ -21,41 +23,50 @@ and type_content =
   (* TODO: remove this when we remove the old typer *)
   | T_wildcard
   | T_constant of type_operator
+  [@@deriving yojson]
 
 and arrow = {
     type1: type_expression;
     type2: type_expression;
   }
+  [@@deriving yojson]
 
 and te_list = type_expression list
+  [@@deriving yojson]
 and type_operator = {
     type_constant : type_constant;
     arguments     : te_list;
   }
+  [@@deriving yojson]
 
 and annot_option = string option
+  [@@deriving yojson]
 
 and row_element = {
     associated_type : type_expression;
     michelson_annotation : annot_option;
     decl_pos : int;
 }
+  [@@deriving yojson]
 
 and type_map_args = {
     k : type_expression;
     v : type_expression;
   }
+  [@@deriving yojson]
 
 and michelson_or_args = {
     l : type_expression;
     r : type_expression;
   }
+  [@@deriving yojson]
 
 and type_expression = {
     type_content: type_content;
     type_meta: type_meta;
     location: location;
   }
+  [@@deriving yojson]
 
 and matching_content_cons = {
     hd : expression_variable;
@@ -63,47 +74,59 @@ and matching_content_cons = {
     body : expression;
     tv : type_expression;
   }
+  [@@deriving yojson]
 
 and matching_content_list = {
     match_nil : expression ;
     match_cons : matching_content_cons;
   }
+  [@@deriving yojson]
 
 and matching_content_some = {
     opt  : expression_variable ;
     body : expression ;
     tv   : type_expression ;
   }
+  [@@deriving yojson]
 
 and matching_content_option = {
     match_none : expression ;
     match_some : matching_content_some ;
   }
+  [@@deriving yojson]
 
 and expression_variable_list = expression_variable list
+  [@@deriving yojson]
 and type_expression_list = type_expression list
+  [@@deriving yojson]
 
 and matching_content_case = {
     constructor : label ;
     pattern : expression_variable ;
     body : expression ;
   }
+  [@@deriving yojson]
 
 and matching_content_case_list = matching_content_case list
+  [@@deriving yojson]
 
 and matching_content_variant = {
     cases: matching_content_case_list;
     tv: type_expression;
   }
+  [@@deriving yojson]
 
 and matching_expr =
   | Match_list    of matching_content_list
   | Match_option  of matching_content_option
   | Match_variant of matching_content_variant
+  [@@deriving yojson]
 
 and declaration_loc = declaration location_wrap
+  [@@deriving yojson]
 
 and program = declaration_loc list
+  [@@deriving yojson]
 
 (* A Declaration_constant is described by
  *   a name + a type-annotated expression
@@ -115,35 +138,42 @@ and declaration_constant = {
     expr : expression ;
     inline : bool ;
   }
+  [@@deriving yojson]
 
 and declaration_type = {
     type_binder : type_variable ;
     type_expr : type_expression ;
   }
+  [@@deriving yojson]
 
 and declaration =
   | Declaration_constant of declaration_constant
   | Declaration_type of declaration_type
+  [@@deriving yojson]
 
 and expression = {
     expression_content: expression_content ;
     location: location ;
     type_expression: type_expression ;
   }
+  [@@deriving yojson]
 
 and map_kv = {
-    k : expression ;
-    v : expression ;
+    key : expression ;
+    value : expression ;
   }
+  [@@deriving yojson]
 
 and look_up = {
     ds : expression;
     ind : expression;
   }
+  [@@deriving yojson]
 
 and expression_label_map = expression label_map
-and map_kv_list = map_kv list
+  [@@deriving yojson]
 and expression_list = expression list
+  [@@deriving yojson]
 
 and expression_content =
   (* Base *)
@@ -162,23 +192,25 @@ and expression_content =
   | E_record of expression_label_map
   | E_record_accessor of record_accessor
   | E_record_update   of record_update
+  [@@deriving yojson]
 
 and constant = {
     cons_name: constant' ;
     arguments: expression_list ;
   }
+  [@@deriving yojson]
 
 and application = {
   lamb: expression ;
   args: expression ;
   }
+  [@@deriving yojson]
 
 and lambda =  {
     binder: expression_variable ;
-    (* input_type: type_expression option ; *)
-    (* output_type: type_expression option ; *)
     result: expression ;
   }
+  [@@deriving yojson]
 
 and let_in = {
     let_binder: expression_variable ;
@@ -186,86 +218,102 @@ and let_in = {
     let_result: expression ;
     inline : bool ;
   }
+  [@@deriving yojson]
 
 and raw_code = {
   language : string;
   code : expression;
-}
+  }
+  [@@deriving yojson]
 
 and recursive = {
   fun_name : expression_variable;
   fun_type : type_expression;
   lambda : lambda;
-}
+  }
+  [@@deriving yojson]
 
 and constructor = {
     constructor: label;
     element: expression ;
   }
+  [@@deriving yojson]
 
 and record_accessor = {
     record: expression ;
     path: label ;
   }
+  [@@deriving yojson]
 
 and record_update = {
     record: expression ;
     path: label ;
     update: expression ;
   }
+  [@@deriving yojson]
 
 and matching = {
     matchee: expression ;
     cases: matching_expr ;
   }
+  [@@deriving yojson]
 
 and ascription = {
     anno_expr: expression ;
     type_annotation: type_expression ;
   }
+  [@@deriving yojson]
 
 and environment_element_definition =
   | ED_binder
   | ED_declaration of environment_element_definition_declaration
+  [@@deriving yojson]
 
 and environment_element_definition_declaration = {
-    expr: expression ;
+    expression: expression ;
     free_variables: free_variables ;
   }
+  [@@deriving yojson]
 
 and free_variables = expression_variable list
+  [@@deriving yojson]
 
 and environment_element = {
     type_value: type_expression ;
     source_environment: environment ;
     definition: environment_element_definition ;
   }
+  [@@deriving yojson]
 
 and expression_environment = environment_binding list
+  [@@deriving yojson]
 
 and environment_binding = {
     expr_var: expression_variable ;
     env_elt: environment_element ;
   }
+  [@@deriving yojson]
 
 and type_environment = type_environment_binding list
+  [@@deriving yojson]
 
 and type_environment_binding = {
     type_variable: type_variable ;
     type_: type_expression ;
-}
+  }
+  [@@deriving yojson]
 
 and environment = {
   expression_environment: expression_environment ;
   type_environment: type_environment ;
-}
+  }
+  [@@deriving yojson]
 
 and named_type_content = {
     type_name : type_variable;
     type_value : type_expression;
   }
-
-
+  [@@deriving yojson]
 
 
 
@@ -273,6 +321,9 @@ and named_type_content = {
 
 (* typevariable: to_string = (fun s -> Format.asprintf "%a" Var.pp s) *)
 type unionfind = type_variable poly_unionfind
+let unionfind_to_yojson _ = `String "type_varianle unionfind"
+(* TODO : use error monad *)
+let unionfind_of_yojson _ = Error ("can't parse unionfind")
 
 (* core *)
 
@@ -298,10 +349,12 @@ type constant_tag =
   | C_operation (* * *)
   | C_contract  (* * -> * *)
   | C_chain_id  (* * *)
+  [@@deriving yojson]
 
 type row_tag =
   | C_record    (* ( label , * ) … -> * *)
   | C_variant   (* ( label , * ) … -> * *)
+  [@@deriving yojson]
 
 (* TODO: rename to type_expression or something similar (it includes variables, and unevaluated functions + applications *)
 type type_value_ =
@@ -310,29 +363,38 @@ type type_value_ =
   | P_constant     of p_constant
   | P_apply        of p_apply
   | P_row          of p_row
+  [@@deriving yojson]
 
 and type_value = {
   tsrc : string;
   t : type_value_ ;
-}
+  }
+  [@@deriving yojson]
 
 and p_apply = {
     tf : type_value ;
     targ : type_value ;
-}
+  }
+  [@@deriving yojson]
+
 and p_ctor_args = type_value list
+  [@@deriving yojson]
 and p_constant = {
     p_ctor_tag : constant_tag ;
     p_ctor_args : p_ctor_args ;
   }
+  [@@deriving yojson]
 
 and tv_lmap = type_value label_map
+  [@@deriving yojson]
 and p_row = {
     p_row_tag  : row_tag ;
     p_row_args : tv_lmap ;
-}
+  }
+  [@@deriving yojson]
  
 and p_constraints = type_constraint list
+  [@@deriving yojson]
 and p_forall = {
   binder      : type_variable ;
   constraints : p_constraints ;
@@ -366,7 +428,6 @@ and c_access_label = {
     accessor : label ;
     c_access_label_tvar : type_variable ;
   }
-
 and type_constraint = {
   reason : string ;
   c : type_constraint_ ;
@@ -398,6 +459,7 @@ and structured_dbs = {
   grouped_by_variable      : constraints_typeVariableMap ; (* map from (unionfind) variables to constraints containing them *)
   cycle_detection_toposort : unit ;                        (* example of structured db that we'll add later *)
 }
+  [@@deriving yojson]
 
 and c_constructor_simpl_list = c_constructor_simpl list
 and c_poly_simpl_list        = c_poly_simpl        list

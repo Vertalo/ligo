@@ -1,6 +1,7 @@
 type t =
   Standard of string
 | Verbatim of string
+  [@@deriving yojson]
 
 let pp ppf = function
     Standard s -> Format.fprintf ppf "%S" s

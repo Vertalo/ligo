@@ -12,27 +12,34 @@ type type_content =
   | T_variable of type_variable
   | T_wildcard
   | T_constant of (type_constant * type_expression list)
+  [@@deriving yojson]
 
 and arrow = {type1: type_expression; type2: type_expression}
+  [@@deriving yojson]
 
 and row_element = {associated_type : type_expression ; michelson_annotation : string option ; decl_pos : int}
+  [@@deriving yojson]
 
 and type_expression = {type_content: type_content; location: Location.t}
+  [@@deriving yojson]
 
 
 type program = declaration Location.wrap list
+  [@@deriving yojson]
+
 and declaration =
   | Declaration_type of (type_variable * type_expression)
-
   (* A Declaration_constant is described by
    *   a name
    *   an optional type annotation
    *   a boolean indicating whether it should be inlined
    *   an expression *)
   | Declaration_constant of (expression_variable * type_expression * bool * expression)
+  [@@deriving yojson]
 
 (* | Macro_declaration of macro_declaration *)
 and expression = {expression_content: expression_content; location: Location.t}
+  [@@deriving yojson]
 
 and expression_content =
   (* Base *)
@@ -63,26 +70,31 @@ and expression_content =
   | E_big_map of (expression * expression) list
   | E_list of expression list
   | E_set of expression list
+  [@@deriving yojson]
 
 and constant =
   { cons_name: constant' (* this is at the end because it is huge *)
   ; arguments: expression list }
+  [@@deriving yojson]
 
 and application = {
   lamb: expression ; 
   args: expression ;
   }
+  [@@deriving yojson]
 
 and lambda = {
   binder: (expression_variable, type_expression) binder; 
   result: expression 
   }
+  [@@deriving yojson]
 
 and recursive = {
   fun_name :  expression_variable;
   fun_type : type_expression;
   lambda : lambda;
 }
+  [@@deriving yojson]
 
 and let_in = { 
   let_binder: (expression_variable, type_expression) binder ;
@@ -91,20 +103,24 @@ and let_in = {
   inline: bool ;
   mut: bool;
   }
+  [@@deriving yojson]
 
 and raw_code = { 
   language : string ;
   code : expression ;
   }
+  [@@deriving yojson]
 
 and constructor = {constructor: label; element: expression}
 and accessor = {record: expression; path: access list}
 and update   = {record: expression; path: access list ; update: expression}
+  [@@deriving yojson]
 
 and access =
-  | Access_tuple of Z.t
+  | Access_tuple of z
   | Access_record of string
-  | Access_map of expr
+  | Access_map of expression
+  [@@deriving yojson]
 
 and matching_expr =
   | Match_variant of ((label * expression_variable) * expression) list
@@ -119,42 +135,26 @@ and matching_expr =
   | Match_tuple of (expression_variable * type_expression) list  * expression
   | Match_record of (label * expression_variable * type_expression) list * expression
   | Match_variable of (expression_variable * type_expression ) * expression
+  [@@deriving yojson]
 
 and matching =
   { matchee: expression
   ; cases: matching_expr
   }
+  [@@deriving yojson]
 
 and ascription = {anno_expr: expression; type_annotation: type_expression}
+  [@@deriving yojson]
 
 and conditional = {
   condition : expression ;
   then_clause : expression ;
   else_clause : expression ;
 }
+  [@@deriving yojson]
+
 and sequence = {
   expr1: expression ;
   expr2: expression ;
   }
-
-and environment_element_definition =
-  | ED_binder
-  | ED_declaration of (expression * free_variables)
-
-and free_variables = expression_variable list
-
-and environment_element =
-  { type_value: type_expression
-  ; source_environment: environment
-  ; definition: environment_element_definition }
-
-and expr_environment = (expression_variable * environment_element) list
-
-and type_environment = (type_variable * type_expression) list
-
-(* SUBST ??? *)
-and environment = expr_environment * type_environment
-
-and expr = expression
-
-and texpr = type_expression
+  [@@deriving yojson]

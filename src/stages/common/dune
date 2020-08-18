@@ -4,10 +4,11 @@
   (libraries
     simple-utils
     tezos-utils
+    ppx_deriving_yojson.runtime
   )
   (inline_tests)
   (preprocess
-    (pps ppx_let ppx_expect bisect_ppx --conditional)
+    (pps ppx_let ppx_expect ppx_deriving_yojson bisect_ppx --conditional)
   )
   (flags (:standard -open Simple_utils))
 )

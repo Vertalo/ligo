@@ -7,10 +7,12 @@
 (* } *)
 
 type virtual_location = string
+  [@@deriving yojson]
 
 type t =
   | File of Region.t (* file_location *)
   | Virtual of virtual_location
+  [@@deriving yojson]
 
 let pp = fun ppf t ->
   match t with
@@ -52,6 +54,7 @@ type 'a wrap = {
   wrap_content : 'a ;
   location : t ;
 }
+  [@@deriving yojson]
 
 let compare_wrap ~compare:compare_content { wrap_content = wca ; location = la } { wrap_content = wcb ; location = lb } =
   match compare_content wca wcb with
