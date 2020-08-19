@@ -161,7 +161,8 @@ val format_error :
   ?offsets:bool ->
   [`Byte | `Point] ->
   file:bool ->
-  string Region.reg ->
+  msg:string ->
+  Region.t ->
   string Region.reg
 
 type 'token scanner = 'token state -> Lexing.lexbuf -> 'token state

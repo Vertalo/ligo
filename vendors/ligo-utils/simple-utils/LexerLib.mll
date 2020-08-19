@@ -478,7 +478,7 @@ let error_to_string = function
     "Invalid character in string.\n\
      Hint: Remove or replace the character."
 
-let format_error ?(offsets=true) mode ~file Region.{region; value=msg} =
+let format_error ?(offsets=true) mode ~file ~msg (region: Region.t)  =
   let reg   = region#to_string ~file ~offsets mode in
   let value = sprintf "Lexical error %s:\n%s\n" reg msg
   in Region.{value; region}
@@ -762,8 +762,8 @@ and scan_flags acc state = parse
 (* Scanner called first *)
 
 and init client state = parse
-  utf8_bom { let state = state#push_bom lexbuf in
-             scan client state lexbuf }
+  utf8_bom { let state = state#push_bom lexbuf
+             in scan client state lexbuf }
 | _        { rollback lexbuf;
              scan client state lexbuf  }
 

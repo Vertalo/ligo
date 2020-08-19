@@ -62,27 +62,28 @@ module Make (IO: IO) (Lexer: Lexer.S) =
                   match IO.options#input with
                     None | Some "-" -> false
                   |         Some _  -> true in
-                let format error message =
+                let format region message =
                   LexerLib.format_error
                     ~offsets:IO.options#offsets
                     IO.options#mode
                     ~file
-                    Region.{error with value=message} in
+                    ~msg:message
+                    region in
                 let rec read_tokens tokens =
                   match read ~log:(fun _ _ -> ()) buffer with
                     token ->
                       if   Lexer.Token.is_eof token
                       then Stdlib.Ok (List.rev tokens)
                       else read_tokens (token::tokens)
-                  | exception LexerLib.Error error ->
-                      let message = LexerLib.error_to_string error.value
-                      in Stdlib.Error (format error message)
-                  | exception Lexer.Token.Error error ->
-                      let message = Lexer.Token.error_to_string error.value
-                      in Stdlib.Error (format error message)
-                  | exception Lexer.Error error ->
-                      let message = Lexer.error_to_string error.value
-                      in Stdlib.Error (format error message) in
+                  | exception LexerLib.Error Region.{region; value} ->
+                      let message = LexerLib.error_to_string value
+                      in Stdlib.Error (format region message)
+                  | exception Lexer.Token.Error Region.{region; value} ->
+                      let message = Lexer.Token.error_to_string value
+                      in Stdlib.Error (format region message)
+                  | exception Lexer.Error Region.{region; value} ->
+                      let message = Lexer.error_to_string value
+                      in Stdlib.Error (format region message) in
                 let result = read_tokens []
                 in close_all (); result
             | Stdlib.Error (LexerLib.File_opening msg) ->
