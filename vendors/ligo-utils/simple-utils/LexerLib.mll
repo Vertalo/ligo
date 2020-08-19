@@ -201,6 +201,9 @@ type 'token state = <
   push_comment : Markup.comment -> 'token state
 >
 
+ (* The type [sync] encapsulates the values returned after calling the
+    method [sync] on a lexer state. *)
+
 and 'token sync = {
   region : Region.t;
   lexeme : lexeme;
@@ -210,11 +213,11 @@ and 'token sync = {
 type 'token scanner = 'token state -> Lexing.lexbuf -> 'token state
 type 'token cut = thread * 'token state -> 'token state
 
-(**)
+(* The type [client] gathers the arguments to the lexer in this
+   module. *)
 
 type 'token client = {
   mk_string   : 'token cut;
-  mk_verbatim : 'token cut;
   mk_eof      : 'token scanner;
   callback    : 'token scanner
 }
@@ -446,7 +449,6 @@ type error =
   Invalid_utf8_sequence
 | Unterminated_comment of string
 | Unterminated_string
-| Unterminated_verbatim
 | Broken_string
 | Invalid_character_in_string
 | Undefined_escape_sequence
@@ -464,9 +466,6 @@ let error_to_string = function
 | Unterminated_string ->
     "Unterminated string.\n\
      Hint: Close with double quotes."
-| Unterminated_verbatim ->
-    "Unterminated verbatim.\n\
-     Hint: Close with \"|}\"."
 | Unterminated_comment ending ->
     sprintf "Unterminated comment.\n\
              Hint: Close with \"%s\"." ending
@@ -519,7 +518,8 @@ let scan_utf8_wrap scan_utf8 callback thread state lexbuf =
     processed).
  *)
 
-let line_preproc line file scan_flags state lexbuf =
+let line_preproc scan_flags ~(line: string) ~(file: string)
+                 (state: 'token state) lexbuf =
   let {state; _}   = state#sync lexbuf in
   let flags, state = scan_flags [] state lexbuf in
   let ()           = ignore flags
@@ -596,10 +596,6 @@ rule scan client state = parse
          let thread             = mk_thread region
          in  scan_string thread state lexbuf |> client.mk_string }
 
-| "{|" { let {region; state; _} = state#sync lexbuf in
-         let thread             = mk_thread region
-         in scan_verbatim thread state lexbuf |> client.mk_verbatim }
-
   (* Comment *)
 
 | block_comment_openings as lexeme {
@@ -629,7 +625,7 @@ rule scan client state = parse
   (* Line preprocessing directives (from #include) *)
 
 | '#' blank* (natural as line) blank+ '"' (string as file) '"' {
-    let state = line_preproc line file scan_flags state lexbuf
+    let state = line_preproc scan_flags ~line ~file state lexbuf
     in scan client state lexbuf }
 
   (* Other tokens *)
@@ -736,18 +732,6 @@ and scan_string thread state = parse
 | _ as c { let {state; _} = state#sync lexbuf in
            scan_string (thread#push_char c) state lexbuf }
 
-and scan_verbatim thread state = parse
-  nl as nl { let ()    = Lexing.new_line lexbuf
-             and state = state#set_pos (state#pos#new_line nl) in
-             scan_verbatim (thread#push_string nl) state lexbuf }
-| '#' blank* (natural as line) blank+ '"' (string as file) '"' {
-             let state = line_preproc line file scan_flags state lexbuf
-             in scan_verbatim thread state lexbuf }
-| eof      { fail thread#opening Unterminated_verbatim       }
-| "|}"     { thread, (state#sync lexbuf).state               }
-| _ as c   { let {state; _} = state#sync lexbuf in
-             scan_verbatim (thread#push_char c) state lexbuf }
-
 (* Scanning the flags of the line preprocessing directives *)
 
 and scan_flags acc state = parse
@@ -781,6 +765,8 @@ let mk_scan client =
           init client state lexbuf
          end
     else scan client state lexbuf
+
+let line_preproc ~line = line_preproc scan_flags ~line
 
 (* END TRAILER *)
 }

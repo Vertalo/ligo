@@ -170,10 +170,22 @@ type 'token cut = thread * 'token state -> 'token state
 
 type 'token client = {
   mk_string   : 'token cut;
-  mk_verbatim : 'token cut;
   mk_eof      : 'token scanner;
   callback    : 'token scanner
 }
+
+(* Updating the state after scanning a line preprocessing directive.
+
+   Note: The flags that may appear and which may be scanned, are
+   dropped.
+*)
+
+val line_preproc :
+  line:string ->
+  file:string ->
+  'token state ->
+  Lexing.lexbuf ->
+  'token state
 
 (* Making a scanner. May raise [Error] above. *)
 

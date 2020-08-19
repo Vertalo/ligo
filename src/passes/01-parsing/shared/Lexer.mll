@@ -3,12 +3,11 @@
 {
 (* START HEADER *)
 
-[@@@warning "-42-45"]
+[@@@warning "-42"]
 
 (* VENDOR DEPENDENCIES *)
 
 module Region   = Simple_utils.Region
-module Pos      = Simple_utils.Pos
 module LexerLib = Simple_utils.LexerLib
 module Markup   = Simple_utils.Markup
 
@@ -111,6 +110,7 @@ module Make (Token : TOKEN) : (S with module Token = Token) =
     | Invalid_symbol
     | Invalid_natural
     | Invalid_attribute
+    | Unterminated_verbatim
 
     let sprintf = Printf.sprintf
 
@@ -130,6 +130,9 @@ module Make (Token : TOKEN) : (S with module Token = Token) =
         "Invalid natural number."
     | Invalid_attribute ->
         "Invalid attribute."
+    | Unterminated_verbatim ->
+       "Unterminated verbatim.\n\
+        Hint: Close with \"|}\"."
 
     exception Error of error Region.reg
 
@@ -247,8 +250,8 @@ module Make (Token : TOKEN) : (S with module Token = Token) =
       in state#enqueue token
 
     let mk_lang lang state buffer =
-      let open LexerLib in
-      let {region; state; _} = state#sync buffer in
+      let LexerLib.{region; state; _}
+                             = state#sync buffer in
       let start              = region#start#shift_bytes 1 in
       let stop               = region#stop in
       let lang_reg           = Region.make ~start ~stop in
@@ -276,6 +279,8 @@ module Make (Token : TOKEN) : (S with module Token = Token) =
 
 (* Named regular expressions *)
 
+let nl         = ['\n' '\r'] | "\r\n"
+let blank      = ' ' | '\t'
 let digit      = ['0'-'9']
 let natural    = digit | digit (digit | '_')* digit
 let decimal    = natural '.' natural
@@ -289,6 +294,7 @@ let hexa_digit = digit | ['A'-'F' 'a'-'f']
 let byte       = hexa_digit hexa_digit
 let byte_seq   = byte | byte (byte | '_')* byte
 let bytes      = "0x" (byte_seq? as seq)
+let string     = [^'"' '\\' '\n']*  (* For strings of #include *)
 
 (* Symbols *)
 
@@ -321,15 +327,33 @@ rule scan state = parse
 | "[@"  (attr as a) "]"  { mk_attr "[@"  a state lexbuf }
 | "[@@" (attr as a) "]"  { mk_attr "[@@" a state lexbuf }
 | "[%"  (attr as l)      { mk_lang       l state lexbuf }
-| _ as c                 { let LexerLib.{region; _} = state#sync lexbuf
-                           in fail region (Unexpected_character c)      }
+
+| "{|" {
+    let LexerLib.{region; state; _} = state#sync lexbuf in
+    let thread                      = LexerLib.mk_thread region
+    in scan_verbatim thread state lexbuf |> mk_verbatim }
+
+| _ as c { let LexerLib.{region; _} = state#sync lexbuf
+           in fail region (Unexpected_character c) }
+
+and scan_verbatim thread state = parse
+  nl as nl { let ()    = Lexing.new_line lexbuf
+             and state = state#set_pos (state#pos#new_line nl) in
+             scan_verbatim (thread#push_string nl) state lexbuf }
+| '#' blank* (natural as line) blank+ '"' (string as file) '"' {
+             let state = LexerLib.line_preproc ~line ~file state lexbuf
+             in scan_verbatim thread state lexbuf }
+| eof      { fail thread#opening Unterminated_verbatim       }
+| "|}"     { LexerLib.(thread, (state#sync lexbuf).state)    }
+| _ as c   { let LexerLib.{state; _} = state#sync lexbuf in
+             scan_verbatim (thread#push_char c) state lexbuf }
 
 (* END LEXER DEFINITION *)
 
 {
 (* START TRAILER *)
 
-let client = LexerLib.{mk_string; mk_verbatim; mk_eof; callback=scan}
+let client = LexerLib.{mk_string; mk_eof; callback=scan}
 let scan   = LexerLib.mk_scan client
 
 end (* of functor [Make] in HEADER *)

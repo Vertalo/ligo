@@ -38,7 +38,6 @@
 (* VENDOR DEPENDENCIES *)
 
 module Region   = Simple_utils.Region
-module Pos      = Simple_utils.Pos
 module LexerLib = Simple_utils.LexerLib
 module Markup   = Simple_utils.Markup
 

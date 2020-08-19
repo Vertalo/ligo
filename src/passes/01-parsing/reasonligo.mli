@@ -29,7 +29,7 @@ val preprocess : string -> (Buffer.t , Errors.parser_error) result
 
 val pretty_print_from_source : string -> (Buffer.t , Errors.parser_error) result
 
-(* Take a ReasonLIGO cst and pretty_print it *)
+(* Pretty-print a ReasonLIGO CST *)
 
 val pretty_print : CST.t -> (Buffer.t, _) result
 val pretty_print_expression : CST.expr -> (Buffer.t, _) result
