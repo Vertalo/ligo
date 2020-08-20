@@ -17,8 +17,8 @@
 
 (* Compounded constructs *)
 
-paren(X): LPAREN X RPAREN { (*$1,$2,$3*) }
-brace(X): LBRACE X RBRACE { (*$1,$2,$3*) }
+paren(X): "(" X ")" { (*$1,$2,$3*) }
+brace(X): "{" X "}" { (*$1,$2,$3*) }
 
 (* Non-empty separated sequence of items *)
 
@@ -29,33 +29,33 @@ nsepseq(X,Sep):
 (* Possibly empty separated sequence of items *)
 
 seq(X):
-  nsepseq(X,SEMI) { (*$1*) }
+  nsepseq(X,";") { (*$1*) }
 
 (* Main *)
 
 program:
-  K_storage   type__ SEMI
-  K_parameter type__ SEMI
-  K_code instruction SEMI
+  "storage"   type__ ";"
+  "parameter" type__ ";"
+  "code" instruction ";"
   EOF {}
-| K_parameter type__ SEMI
-  K_storage   type__ SEMI
-  K_code instruction SEMI
+| "parameter" type__ ";"
+  "storage"   type__ ";"
+  "code" instruction ";"
   EOF {}
 
 type__:
   constant_type_constructor
 
-| T_pair     option(Tannot) field_type field_type
-| T_or       option(Tannot) variant_type variant_type
-| T_option   option(Tannot) subtype
+| "pair"     option(Tannot) field_type field_type
+| "or"       option(Tannot) variant_type variant_type
+| "option"   option(Tannot) subtype
 
-| T_list     option(Tannot) subtype
-| T_set      option(Tannot) comparable_type
-| T_contract option(Tannot) subtype
-| T_lambda   option(Tannot) subtype subtype
-| T_map      option(Tannot) comparable_type subtype
-| T_big_map  option(Tannot) comparable_type subtype
+| "list"     option(Tannot) subtype
+| "set"      option(Tannot) comparable_type
+| "contract" option(Tannot) subtype
+| "lambda"   option(Tannot) subtype subtype
+| "map"      option(Tannot) comparable_type subtype
+| "big_map"  option(Tannot) comparable_type subtype
 
 | paren(type__)
 | paren(constant_type_constructor Tannot {}) {}
@@ -63,16 +63,16 @@ type__:
 field_type:
   constant_type_constructor
 
-| T_pair     option(Fannot) field_type field_type
-| T_or       option(Fannot) variant_type variant_type
-| T_option   option(Fannot) subtype
+| "pair"     option(Fannot) field_type field_type
+| "or"       option(Fannot) variant_type variant_type
+| "option"   option(Fannot) subtype
 
-| T_list     option(Fannot) subtype
-| T_set      option(Fannot) comparable_type
-| T_contract option(Fannot) subtype
-| T_lambda   option(Fannot) subtype subtype
-| T_map      option(Fannot) comparable_type subtype
-| T_big_map  option(Fannot) comparable_type subtype
+| "list"     option(Fannot) subtype
+| "set"      option(Fannot) comparable_type
+| "contract" option(Fannot) subtype
+| "lambda"   option(Fannot) subtype subtype
+| "map"      option(Fannot) comparable_type subtype
+| "big_map"  option(Fannot) comparable_type subtype
 
 | paren(field_type) {}
 | paren(constant_type_constructor Fannot {}) {}
@@ -82,53 +82,53 @@ field_type:
 subtype:
   constant_type_constructor
 
-| T_pair     field_type field_type
-| T_or       variant_type variant_type
-| T_option   subtype
+| "pair"     field_type field_type
+| "or"       variant_type variant_type
+| "option"   subtype
 
-| T_list     subtype
-| T_set      comparable_type
-| T_contract subtype
-| T_lambda   subtype subtype
-| T_map      comparable_type subtype
-| T_big_map  comparable_type subtype
+| "list"     subtype
+| "set"      comparable_type
+| "contract" subtype
+| "lambda"   subtype subtype
+| "map"      comparable_type subtype
+| "big_map"  comparable_type subtype
 
-| paren(type__)
+| paren(type__) {}
 
 comparable_type:
-  T_int
-| T_nat
-| T_string
-| T_bytes
-| T_mutez
-| T_bool
-| T_key_hash
-| T_timestamp {}
+  "int"
+| "nat"
+| "string"
+| "bytes"
+| "mutez"
+| "bool"
+| "key_hash"
+| "timestamp" {}
 
 constant_type_constructor:
   comparable_type
-| T_key
-| T_unit
-| T_signature
-| T_operation
-| T_address {}
+| "key"
+| "unit"
+| "signature"
+| "operation"
+| "address" {}
 
 %inline domain: type__ {}
 %inline range: type__ {}
 
 data:
-  String
-| Bytes
-| Int
-| brace(seq(D_Elt data data {})) (* Empty? *)
-| D_False
-| D_Left data
-| D_None
-| D_Pair data data
-| D_Right data
-| D_Some data
-| D_True
-| D_Unit {}
+  "<string>"
+| "<bytes>"
+| "<int>"
+| brace(seq("Elt" data data {})) (* Empty? *)
+| "False"
+| "Left" data
+| "None"
+| "Pair" data data
+| "Right" data
+| "Some" data
+| "True"
+| "Unit" {}
 
 block:
   brace(seq(instruction)) {} (* Empty? *)
@@ -139,19 +139,24 @@ instruction:
 | ADDRESS
 | AMOUNT
 | AND
+| APPLY
 | BALANCE
 | BLAKE2B
+| CHAIN_ID
 | CAST
 | CHECK_SIGNATURE
 | COMPARE
 | CONCAT
 | CONS
 | CONTRACT type__
-| CREATE_ACCOUNT
 | CREATE_CONTRACT block
-| IMPLICIT_ACCOUNT
+| DIG
+| DIP
 | DROP
+| DUG
+| DUP
 | EDIV
+| EMPTY_BIG_MAP comparable_type type__
 | EMPTY_MAP comparable_type type__
 | EMPTY_SET comparable_type
 | EQ
@@ -166,6 +171,7 @@ instruction:
 | IF_LEFT block block
 | IF_NONE block block
 | IF_RIGHT block block
+| IMPLICIT_ACCOUNT
 | INT
 | ISNAT
 | ITER block
@@ -200,7 +206,6 @@ instruction:
 | SLICE
 | SOME
 | SOURCE
-| STEPS_TO_QUOTA
 | SUB
 | SWAP
 | TRANSFER_TOKENS
@@ -255,8 +260,6 @@ macro:
 
 | PAIR
 | UNPAIR
-| DIP
-| DUP
 | CADR
 | SET_CADR
 | MAP_CADR {}

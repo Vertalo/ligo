@@ -22,10 +22,10 @@
 *)
 
 
-(* Dependencies *)
+(* Vendor dependencies *)
 
 module Region = Simple_utils.Region
-module Markup = Lexer_shared.Markup
+module Markup = Simple_utils.Markup
 
 (* TOKENS *)
 
@@ -113,7 +113,6 @@ type instruction =
 | IF               of Region.t
 | IF_CONS          of Region.t
 | IF_LEFT          of Region.t
-| IF_NONE          of Region.t
 | IF_RIGHT         of Region.t
 | IMPLICIT_ACCOUNT of Region.t
 | INT              of Region.t
@@ -303,11 +302,10 @@ val to_region : token -> Region.t
 type int_err = Non_canonical_zero
 
 type ident_err =
-  Valid_prefix          of Pair.index * Pair.tree
-| Invalid_tree          of Pair.index * char * Pair.tree
-| Truncated_encoding    of Pair.index * Pair.child * Pair.tree
-| Invalid_Roman_numeral of int
-| Missing_break         of int
+  Valid_prefix       of Pair.index * Pair.tree
+| Invalid_tree       of Pair.index * char * Pair.tree
+| Truncated_encoding of Pair.index * Pair.child * Pair.tree
+| Missing_break      of int
 | Invalid_identifier
 
 type annot_err = Annotation_length of int
@@ -331,10 +329,6 @@ type error
 val error_to_string : error -> string
 
 exception Error of error Region.reg
-
-val format_error :
-  ?offsets:bool -> [`Byte | `Point] ->
-  error Region.reg -> file:bool -> string Region.reg
 
 val check_right_context :
   token ->

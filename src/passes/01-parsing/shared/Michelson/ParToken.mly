@@ -1,21 +1,21 @@
 %{
 %}
 
-(* Tokens (mirroring thise defined in module LexToken) *)
+(* Tokens mirroring those defined in module LexToken *)
 
   (* Literals *)
 
-%token <LexToken.lexeme Region.reg> String
-%token <(LexToken.lexeme * Hex.t) Region.reg> Bytes
-%token <(LexToken.lexeme * Z.t) Region.reg> Int
+%token <LexToken.lexeme Region.reg>           String "<string>"
+%token <(LexToken.lexeme * Hex.t) Region.reg> Bytes  "<bytes>"
+%token <(LexToken.lexeme * Z.t) Region.reg>   Int    "<int>"
 
   (* Symbols *)
 
-%token <Region.t> SEMI
-%token <Region.t> LPAREN
-%token <Region.t> RPAREN
-%token <Region.t> LBRACE
-%token <Region.t> RBRACE
+%token <Region.t> SEMI    ";"
+%token <Region.t> LPAREN  "("
+%token <Region.t> RPAREN  ")"
+%token <Region.t> LBRACE  "{"
+%token <Region.t> RBRACE  "}"
 
   (* Annotations *)
 
@@ -25,46 +25,46 @@
 
   (* Keywords *)
 
-%token <Region.t> K_parameter
-%token <Region.t> K_storage
-%token <Region.t> K_code
+%token <Region.t> K_parameter "parameter"
+%token <Region.t> K_storage   "storage"
+%token <Region.t> K_code      "code"
 
   (* Types *)
 
-%token <Region.t> T_address   (* "address"   *)
-%token <Region.t> T_big_map   (* "big_map"   *)
-%token <Region.t> T_bool      (* "bool"      *)
-%token <Region.t> T_bytes     (* "bytes"     *)
-%token <Region.t> T_contract  (* "contract"  *)
-%token <Region.t> T_int       (* "int"       *)
-%token <Region.t> T_key       (* "key"       *)
-%token <Region.t> T_key_hash  (* "key_hash"  *)
-%token <Region.t> T_lambda    (* "lambda"    *)
-%token <Region.t> T_list      (* "list"      *)
-%token <Region.t> T_map       (* "map"       *)
-%token <Region.t> T_mutez     (* "mutez"     *)
-%token <Region.t> T_nat       (* "nat"       *)
-%token <Region.t> T_operation (* "operation" *)
-%token <Region.t> T_option    (* "option"    *)
-%token <Region.t> T_or        (* "or"        *)
-%token <Region.t> T_pair      (* "pair"      *)
-%token <Region.t> T_set       (* "set"       *)
-%token <Region.t> T_signature (* "signature" *)
-%token <Region.t> T_string    (* "string"    *)
-%token <Region.t> T_timestamp (* "timestamp" *)
-%token <Region.t> T_unit      (* "unit"      *)
+%token <Region.t> T_address   "address"
+%token <Region.t> T_big_map   "big_map"
+%token <Region.t> T_bool      "bool"
+%token <Region.t> T_bytes     "bytes"
+%token <Region.t> T_contract  "contract"
+%token <Region.t> T_int       "int"
+%token <Region.t> T_key       "key"
+%token <Region.t> T_key_hash  "key_hash"
+%token <Region.t> T_lambda    "lambda"
+%token <Region.t> T_list      "list"
+%token <Region.t> T_map       "map"
+%token <Region.t> T_mutez     "mutez"
+%token <Region.t> T_nat       "nat"
+%token <Region.t> T_operation "operation"
+%token <Region.t> T_option    "option"
+%token <Region.t> T_or        "or"
+%token <Region.t> T_pair      "pair"
+%token <Region.t> T_set       "set"
+%token <Region.t> T_signature "signature"
+%token <Region.t> T_string    "string"
+%token <Region.t> T_timestamp "timestamp"
+%token <Region.t> T_unit      "unit"
 
   (* Data *)
 
-%token <Region.t> D_Elt   (* "Elt"   *)
-%token <Region.t> D_False (* "False" *)
-%token <Region.t> D_Left  (* "Left"  *)
-%token <Region.t> D_None  (* "None"  *)
-%token <Region.t> D_Pair  (* "Pair"  *)
-%token <Region.t> D_Right (* "Right" *)
-%token <Region.t> D_Some  (* "Some"  *)
-%token <Region.t> D_True  (* "True"  *)
-%token <Region.t> D_Unit  (* "Unit"  *)
+%token <Region.t> D_Elt   "Elt"
+%token <Region.t> D_False "False"
+%token <Region.t> D_Left  "Left"
+%token <Region.t> D_None  "None"
+%token <Region.t> D_Pair  "Pair"
+%token <Region.t> D_Right "Right"
+%token <Region.t> D_Some  "Some"
+%token <Region.t> D_True  "True"
+%token <Region.t> D_Unit  "Unit"
 
   (* Instructions *)
 
@@ -73,19 +73,24 @@
 %token <Region.t> ADDRESS
 %token <Region.t> AMOUNT
 %token <Region.t> AND
+%token <Region.t> APPLY
 %token <Region.t> BALANCE
 %token <Region.t> BLAKE2B
+%token <Region.t> CHAIN_ID
 %token <Region.t> CAST
 %token <Region.t> CHECK_SIGNATURE
 %token <Region.t> COMPARE
 %token <Region.t> CONCAT
 %token <Region.t> CONS
 %token <Region.t> CONTRACT
-%token <Region.t> CREATE_ACCOUNT
 %token <Region.t> CREATE_CONTRACT
-%token <Region.t> IMPLICIT_ACCOUNT
+%token <Region.t> DIG
+%token <Region.t> DIP
 %token <Region.t> DROP
+%token <Region.t> DUG
+%token <Region.t> DUP
 %token <Region.t> EDIV
+%token <Region.t> EMPTY_BIG_MAP
 %token <Region.t> EMPTY_MAP
 %token <Region.t> EMPTY_SET
 %token <Region.t> EQ
@@ -98,8 +103,8 @@
 %token <Region.t> IF
 %token <Region.t> IF_CONS
 %token <Region.t> IF_LEFT
-%token <Region.t> IF_NONE
 %token <Region.t> IF_RIGHT
+%token <Region.t> IMPLICIT_ACCOUNT
 %token <Region.t> INT
 %token <Region.t> ISNAT
 %token <Region.t> ITER
@@ -134,7 +139,6 @@
 %token <Region.t> SLICE
 %token <Region.t> SOME
 %token <Region.t> SOURCE
-%token <Region.t> STEPS_TO_QUOTA
 %token <Region.t> SUB
 %token <Region.t> SWAP
 %token <Region.t> TRANSFER_TOKENS
@@ -143,7 +147,7 @@
 %token <Region.t> UPDATE
 %token <Region.t> XOR
 
-  (* Constant macros *)
+(* Macros *)
 
 %token <Region.t> ASSERT
 %token <Region.t> ASSERT_CMPEQ
@@ -181,17 +185,16 @@
 %token <Region.t> IFLE
 %token <Region.t> IFLT
 %token <Region.t> IFNEQ
+%token <Region.t> IF_NONE
 %token <Region.t> IF_SOME
 
   (* Non-constant macros *)
 
-%token     <Pair.tree Region.reg> PAIR
-%token      <Pair.tree Region.reg> UNPAIR
-%token <(string * int) Region.reg> DIP     (* The lexeme and number of Is *)
-%token            <int Region.reg> DUP                (* The number of Us *)
-%token      <Pair.path Region.reg> CADR
-%token      <Pair.path Region.reg> SET_CADR
-%token      <Pair.path Region.reg> MAP_CADR
+%token <Pair.tree Region.reg> PAIR
+%token <Pair.tree Region.reg> UNPAIR
+%token <Pair.tree Region.reg> CADR
+%token <Pair.tree Region.reg> SET_CADR
+%token <Pair.tree Region.reg> MAP_CADR
 
   (* Virtual tokens *)
 

@@ -39,8 +39,11 @@
    tokens.
 *)
 
-module Region = Simple_utils.Region
-module Pos    = Simple_utils.Pos
+(* VENDOR DEPENDENCIES *)
+
+module Region   = Simple_utils.Region
+module LexerLib = Simple_utils.LexerLib
+module Markup   = Simple_utils.Markup
 
 (* TOKENS *)
 
@@ -70,11 +73,10 @@ module type TOKEN =
     type annot_err = Annotation_length of int
 
     type ident_err =
-      Valid_prefix          of Pair.index * Pair.tree
-    | Invalid_tree          of Pair.index * char * Pair.tree
-    | Truncated_encoding    of Pair.index * Pair.child * Pair.tree
-    | Invalid_Roman_numeral of int
-    | Missing_break         of int
+      Valid_prefix       of Pair.index * Pair.tree
+    | Invalid_tree       of Pair.index * char * Pair.tree
+    | Truncated_encoding of Pair.index * Pair.child * Pair.tree
+    | Missing_break      of int
     | Invalid_identifier
 
     (* Injections *)
@@ -105,13 +107,6 @@ module type TOKEN =
 
     exception Error of error Region.reg
 
-    val format_error :
-      ?offsets:bool ->
-      [`Byte | `Point] ->
-      error Region.reg ->
-      file:bool ->
-      string Region.reg
-
     val check_right_context :
       token ->
       (Lexing.lexbuf -> (Markup.t list * token) option) ->
@@ -137,10 +132,6 @@ module type S =
     val error_to_string : error -> string
 
     exception Error of error Region.reg
-
-    val format_error :
-      ?offsets:bool -> [`Byte | `Point] ->
-      error Region.reg -> file:bool -> string Region.reg
   end
 
 (* The functorised interface

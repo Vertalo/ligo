@@ -94,7 +94,7 @@ type attribute = {
 let invalidate child attr =
   match attr.mode with
     Valid   -> {attr with mode = Invalid (child, attr.index)}
-  | invalid -> attr
+  | _       -> attr
 
 (* The call [shift a] assumes that the suffix code in the attribute
    [a] is not empty. If not empty, it increments the index and take

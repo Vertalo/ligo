@@ -4,19 +4,18 @@
 {
 (* START HEADER *)
 
-(* Dependencies *)
+(* Vendor dependencies *)
 
 module Region = Simple_utils.Region
-module Markup = Lexer_shared.Markup
+module Markup = Simple_utils.Markup
+
+(* Utility modules *)
+
 module SMap   = Map.Make (String)
 
 (* Shorhands *)
 
 let sprintf = Printf.sprintf
-
-(* Printing a string in red to standard error *)
-
-let highlight msg = Printf.eprintf "\027[31m%s\027[0m%!" msg
 
 (* TOKENS *)
 
@@ -40,14 +39,14 @@ type annotation =
 | Fannot of string Region.reg  (* Field annotations *)
 
 let annot_to_lexeme = function
-  Tannot a | Vannot a | Fannot a -> a.value
+  Tannot a | Vannot a | Fannot a -> a.Region.value
 
 let proj_annot = function
-  Tannot {region; value} ->
+  Tannot Region.{region; value} ->
     region, sprintf "Tannot \"%s\"" value
-| Vannot {region; value} ->
+| Vannot Region.{region; value} ->
     region, sprintf "Vannot \"%s\"" value
-| Fannot {region; value} ->
+| Fannot Region.{region; value} ->
     region, sprintf "Fannot \"%s\"" value
 
 let annot_to_string annot ?(offsets=true) mode =
@@ -76,8 +75,6 @@ let keyword_to_string kwd ?(offsets=true) mode =
   let region, val_str = proj_keyword kwd in
   let reg_str = region#compact ~offsets mode
   in sprintf "%s: %s" reg_str val_str
-
-let keyword_to_region kwd = proj_keyword kwd |> fst
 
 let kwd_list = [
   (fun reg -> K_storage reg);
@@ -139,8 +136,6 @@ let data_to_string data ?(offsets=true) mode =
   let reg_str = region#compact ~offsets mode
   in sprintf "%s: %s" reg_str val_str
 
-let data_to_region data = proj_data data |> fst
-
 let data_map = mk_map (fun f -> data_to_lexeme (f Region.ghost)) data_list
 
 (* INSTRUCTIONS *)
@@ -181,7 +176,6 @@ type instruction =
 | IF               of Region.t
 | IF_CONS          of Region.t
 | IF_LEFT          of Region.t
-| IF_NONE          of Region.t
 | IF_RIGHT         of Region.t
 | IMPLICIT_ACCOUNT of Region.t
 | INT              of Region.t
@@ -262,7 +256,6 @@ let instr_list = [
   (fun reg -> IF               reg);
   (fun reg -> IF_CONS          reg);
   (fun reg -> IF_LEFT          reg);
-  (fun reg -> IF_NONE          reg);
   (fun reg -> IF_RIGHT         reg);
   (fun reg -> IMPLICIT_ACCOUNT reg);
   (fun reg -> INT              reg);
@@ -344,7 +337,6 @@ let proj_instr = function
 | IF               region -> region, "IF"
 | IF_CONS          region -> region, "IF_CONS"
 | IF_LEFT          region -> region, "IF_LEFT"
-| IF_NONE          region -> region, "IF_NONE"
 | IF_RIGHT         region -> region, "IF_RIGHT"
 | IMPLICIT_ACCOUNT region -> region, "IMPLICIT_ACCOUNT"
 | INT              region -> region, "INT"
@@ -395,8 +387,6 @@ let instr_to_string instr ?(offsets=true) mode =
   let region, val_str = proj_instr instr in
   let reg_str = region#compact ~offsets mode
   in sprintf "%s: %s" reg_str val_str
-
-let instr_to_region instr = proj_instr instr |> fst
 
 let instr_map =
   mk_map (fun f -> instr_to_lexeme (f Region.ghost)) instr_list
@@ -537,15 +527,15 @@ let proj_macro = function
 
 (* Non-constant macros *)
 
-| PAIR {region; value=tree} ->
+| PAIR Region.{region; value=tree} ->
     region, sprintf "%sR" Pair.(encode tree |> drop)
-| UNPAIR {region; value=tree} ->
+| UNPAIR Region.{region; value=tree} ->
     region, sprintf "UN%sR" Pair.(encode tree |> drop)
-| CADR {region; value} ->
+| CADR Region.{region; value} ->
     region, Pair.drop_path value
-| SET_CADR {region; value} ->
+| SET_CADR Region.{region; value} ->
     region, sprintf "SET_%s" (Pair.drop_path value)
-| MAP_CADR {region; value} ->
+| MAP_CADR Region.{region; value} ->
     region, sprintf "MAP_%s" (Pair.drop_path value)
 
 let macro_to_lexeme macro = proj_macro macro |> snd
@@ -554,8 +544,6 @@ let macro_to_string macro ?(offsets=true) mode =
   let region, val_str = proj_macro macro in
   let reg_str = region#compact ~offsets mode
   in sprintf "%s: %s" reg_str val_str
-
-let macro_to_region macro = proj_macro macro |> fst
 
 let macro_map = mk_map (fun f -> macro_to_lexeme (f Region.ghost)) macro_list
 
@@ -703,9 +691,9 @@ type t =
 type token = t
 
 let to_lexeme = function
-  String s  -> s.value
-| Bytes b   -> fst b.value
-| Int i     -> fst i.value
+  String s  -> s.Region.value
+| Bytes b   -> fst b.Region.value
+| Int i     -> fst i.Region.value
 | Keyword k -> keyword_to_lexeme k
 | Data d    -> data_to_lexeme d
 | Instr i   -> instr_to_lexeme i
@@ -720,12 +708,12 @@ let to_lexeme = function
 | EOF _     -> ""
 
 let proj_token = function
-  String {region; value} ->
+  String Region.{region; value} ->
     region, sprintf "String %S" value
 | Bytes Region.{region; value = s,b} ->
     region,
     sprintf "Bytes (%S, \"0x%s\")" s (Hex.show b)
-| Int {region; value=s,n} ->
+| Int Region.{region; value=s,n} ->
     region, sprintf "Int (%S, %s)" s (Z.to_string n)
 | Keyword k -> proj_keyword k
 | Data d -> proj_data d
@@ -751,17 +739,16 @@ let to_region token = proj_token token |> fst
 (* Errors in the recognition of an identifier *)
 
 type ident_err =
-  Valid_prefix          of Pair.index * Pair.tree
-| Invalid_tree          of Pair.index * char * Pair.tree
-| Truncated_encoding    of Pair.index * Pair.child * Pair.tree
-| Invalid_Roman_numeral of int
-| Missing_break         of int
+  Valid_prefix       of Pair.index * Pair.tree
+| Invalid_tree       of Pair.index * char * Pair.tree
+| Truncated_encoding of Pair.index * Pair.child * Pair.tree
+| Missing_break      of int
 | Invalid_identifier
 
 (* The function [mk_tree] refines the errors exported by the module
    [Pair]: when an invalid pair constructor is found,
    [Pair.Invalid_tree] is raised and handled here: if the end of the
-   encoding was actually reached this exception becomes the error
+   encoding was actually reached, this exception becomes the error
    [Truncated_encoding]. If not, we get an invalid tree. This enables
    a finer error reporting. *)
 
@@ -800,7 +787,7 @@ let uppercase = ['A'-'Z']
 let lowercase = ['a'-'z']
 let digit     = ['0'-'9']
 let natural   = digit | digit (digit | '_')* digit
-let instr     = uppercase (uppercase | '_' | natural)* uppercase
+let instr     = uppercase (uppercase | '_' (uppercase | natural) | natural)*
 let data      = uppercase lowercase+ as id
 let kwd_type  = lowercase (lowercase | '_')* as id
 
@@ -847,7 +834,7 @@ rule scan_ident region lexicon = parse
 
 (* Smart constructors (injections) *)
 
-let mk_string lexeme region = String {region; value=lexeme}
+let mk_string lexeme region = String Region.{region; value=lexeme}
 
 let mk_bytes lexeme region =
   let norm = Str.(global_replace (regexp "_") "" lexeme) in
@@ -872,7 +859,7 @@ let mk_sym lexeme region =
   | ")" -> RPAREN region
   | "{" -> LBRACE region
   | "}" -> RBRACE region
-  | _   -> assert false
+  | _   -> assert false (* See regexp "symbol" in Lexer.mll. *)
 
 type annot_err = Annotation_length of int
 
@@ -882,9 +869,9 @@ let mk_annot lexeme region =
   else
     let value = String.sub lexeme 1 (String.length lexeme - 1)
     in match lexeme.[0] with
-         ':' -> Ok (Annot (Tannot {region; value}))
-       | '@' -> Ok (Annot (Vannot {region; value}))
-       | '%' -> Ok (Annot (Fannot {region; value}))
+         ':' -> Ok (Annot (Tannot Region.{region; value}))
+       | '@' -> Ok (Annot (Vannot Region.{region; value}))
+       | '%' -> Ok (Annot (Fannot Region.{region; value}))
        |   _ -> assert false
 
 (* Identifiers *)
@@ -899,15 +886,9 @@ let mk_ident lexeme region = mk_ident' lexeme region lexicon
 let is_string = function String _ -> true | _ -> false
 let is_bytes  = function Bytes _  -> true | _ -> false
 let is_int    = function Int _    -> true | _ -> false
-let is_annot  = function Annot _  -> true | _ -> false
 let is_ident  = function
   Keyword _ | Data _ | Instr _ | Macro _ | Type _ -> true
 | _ -> false
-
-let is_sym = function
-  SEMI _ | LPAREN _ | RPAREN _ | LBRACE _ | RBRACE _ -> true
-| _ -> false
-
 let is_eof = function EOF _ -> true | _ -> false
 
 (* ERRORS *)
@@ -925,12 +906,6 @@ let error_to_string = function
      Hint: Insert some space."
 
 exception Error of error Region.reg
-
-let format_error ?(offsets=true) mode Region.{region; value} ~file =
-  let msg = error_to_string value
-  and reg = region#to_string ~file ~offsets mode in
-  let value = sprintf "Lexical error %s:\n%s\n" reg msg
-  in Region.{value; region}
 
 let fail region value = raise (Error Region.{region; value})
 
@@ -960,7 +935,7 @@ let check_right_context token next_token buffer : unit =
                         then fail region Odd_lengthed_bytes
                         else ()
               else ()
-      | _::_ -> ()
+        | _::_ -> ()
 
 (* END TRAILER *)
 }
