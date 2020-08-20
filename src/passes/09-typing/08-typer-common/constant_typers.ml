@@ -673,8 +673,7 @@ let test_external_call = typer_3 "TEST_EXTERNAL_CALL" @@ fun addr _p amt  ->
 
 let test_get_storage = typer_1_opt "TEST_GET_STORAGE" @@ fun addr opt ->
   let%bind () = assert_eq addr (t_address ()) in
-  let%bind storage_t = trace_option not_annotated opt in
-  ok storage_t
+  ok opt
 
 let test_assert_failure = typer_1 "TEST_ASSERT_FAILURE" @@ fun f ->
   let%bind (input , output) = trace_option (expected_function f) @@ get_t_function f in
