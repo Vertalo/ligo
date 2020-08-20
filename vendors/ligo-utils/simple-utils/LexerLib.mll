@@ -736,20 +736,19 @@ and scan_string thread state = parse
 
 and scan_flags acc state = parse
   blank+          { let {state; _} = state#sync lexbuf
-                    in scan_flags acc state lexbuf          }
+                    in scan_flags acc state lexbuf                 }
 | natural as code { let {state; _} = state#sync lexbuf
                     and acc = int_of_string code :: acc
-                    in scan_flags acc state lexbuf          }
-| nl              { List.rev acc, state#push_newline lexbuf }
-| eof             { List.rev acc, (state#sync lexbuf).state }
+                    in scan_flags acc state lexbuf                 }
+| nl              { List.rev acc, state#set_pos (state#pos#add_nl) }
+| eof             { List.rev acc, (state#sync lexbuf).state        }
 
 (* Scanner called first *)
 
 and init client state = parse
   utf8_bom { let state = state#push_bom lexbuf
-             in scan client state lexbuf }
-| _        { rollback lexbuf;
-             scan client state lexbuf  }
+             in scan client state lexbuf                }
+| _        { rollback lexbuf; scan client state lexbuf  }
 
 (* END LEXER DEFINITION *)
 
