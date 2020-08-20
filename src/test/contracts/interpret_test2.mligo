@@ -56,7 +56,7 @@ let test1 =
   let unit_ = Test.inject_script addr1 main1 0 in
   let unit_ = Test.inject_script addr2 main2 0 in
 
-  let unit_ = Test.set_balance addr1 0tz in
+  let unit_ = Test.set_balance addr1 10tz in
   let unit_ = Test.set_balance addr2 0tz in
 
   let unit_ = Test.set_now Tezos.now in
@@ -66,7 +66,9 @@ let test1 =
 
   let a : int  = Test.get_storage addr1 in
   let b : int  = Test.get_storage addr2 in
-  (a = 1) && (b = 4)
+  let bal1 : tez = Test.get_balance addr1 in
+  let bal2 : tez = Test.get_balance addr2 in
+  (a = 1) && (b = 4) && (bal1 = 1tz) && (bal2 = 10tz)
 
 let self =
   let unit_ = Test.inject_script addr1 main_self (None : parameter contract option) in

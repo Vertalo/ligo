@@ -271,6 +271,7 @@ and constant ppf : constant' -> unit = function
   | C_TEST_SET_BALANCE -> fprintf ppf "TEST_SET_BALANCE"
   | C_TEST_EXTERNAL_CALL -> fprintf ppf "TEST_EXTERNAL_CALL"
   | C_TEST_GET_STORAGE -> fprintf ppf "TEST_GET_STORAGE"
+  | C_TEST_GET_BALANCE -> fprintf ppf "TEST_GET_BALANCE"
   | C_TEST_ASSERT_FAILURE -> fprintf ppf "TEST_ASSERT_FAILURE"
   | C_TEST_GENERATE_ADDR -> fprintf ppf "TEST_GENERATE_KEYS"
 

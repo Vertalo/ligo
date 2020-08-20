@@ -90,6 +90,7 @@ let is_pure_constant : constant' -> bool =
   (* Test - ligo interpreter *)
   | C_TEST_INJECT_SCRIPT
   | C_TEST_GET_STORAGE
+  | C_TEST_GET_BALANCE
   | C_TEST_SET_NOW 
   | C_TEST_SET_SOURCE
   | C_TEST_SET_BALANCE

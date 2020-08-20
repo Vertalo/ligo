@@ -26,11 +26,13 @@ module Command = struct
     | Internal_call : string -> unit t
     | Update_storage : string * LT.value -> unit t
     | Get_storage : string -> LT.value t
+    | Get_balance : string -> LT.value t
     | Inject_script : string * LT.value * LT.value -> unit t
     | Set_now : Z.t -> unit t
     | Set_source : string -> unit t
     | Set_balance : string * LT.Tez.t -> unit t
     | Credit_balance : string * LT.Tez.t -> unit t
+    | Debit_balance : LT.Tez.t -> unit t
     | Parse_contract_for_script : Alpha_context.Contract.t * string -> unit t
     | Now : Z.t t
     | Amount : LT.Tez.t t
@@ -141,6 +143,10 @@ module Command = struct
     | Get_storage addr ->
       let storage = Mini_proto.StateMap.find (Address addr) ctxt.contracts in
       ok (storage.script.storage, ctxt)
+    | Get_balance addr ->
+      let storage = Mini_proto.StateMap.find (Address addr) ctxt.contracts in
+      let balance = LT.V_Ct (C_mutez storage.script_balance) in
+      ok (balance, ctxt)
     | Inject_script (addr, code, storage) ->
       let script : Mini_proto.script = { code ; storage } in
       let contracts : Mini_proto.state = {script ; script_balance = Alpha_context.Tez.zero } in
@@ -169,12 +175,27 @@ module Command = struct
           let script_balance =
             Proto_alpha_utils.Trace.trace_alpha_tzresult (fun _ -> `TODO) @@
             LT.Tez.(state.script_balance +? amt) in
-          let script_balance = match script_balance with Ok (x,_) -> x | Error _ -> contract_failure "Balance overflow (?)" in
+          let script_balance = match script_balance with Ok (x,_) -> x | Error _ -> contract_failure "Balance overflow" in
           Some { state with script_balance }
-        | None -> failwith "EXTERNAL CALL DESTINATION UNKNOWN" (* TODO *)
+        | None -> failwith "UPDATING BALANCE: DESTINATION UNKNOWN" (* TODO *)
       in
       let contracts = Mini_proto.StateMap.update (Address addr) aux ctxt.contracts in
       ok ((), { ctxt with contracts})
+    | Debit_balance amt ->
+      let aux : Mini_proto.state option -> Mini_proto.state option = fun state_opt ->
+        match state_opt with
+        | Some state ->
+          let script_balance =
+            Proto_alpha_utils.Trace.trace_alpha_tzresult (fun _ -> `TODO) @@
+            LT.Tez.(state.script_balance -? amt) in
+          let script_balance = match script_balance with Ok (x,_) -> x | Error _ -> contract_failure "Balance underflow" in
+          Some { state with script_balance }
+        | None -> failwith "UPDATING BALANCE: DESTINATION UNKNOWN" (* TODO *)
+      in
+      let self = Alpha_context.Contract.to_b58check ctxt.step_constants.self in
+      let contracts = Mini_proto.StateMap.update (Address self) aux ctxt.contracts in
+      let balance = (Mini_proto.StateMap.find (Address self) ctxt.contracts).script_balance in
+      ok ((), ({ contracts ; step_constants = { ctxt.step_constants with balance }} : Mini_proto.t))
     | Now -> ok (LT.Timestamp.to_zint ctxt.step_constants.now, ctxt)
     | Amount -> ok (ctxt.step_constants.amount, ctxt)
     | Balance -> ok (ctxt.step_constants.balance, ctxt)

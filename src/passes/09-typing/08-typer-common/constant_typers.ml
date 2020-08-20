@@ -675,6 +675,10 @@ let test_get_storage = typer_1_opt "TEST_GET_STORAGE" @@ fun addr opt ->
   let%bind () = assert_eq addr (t_address ()) in
   ok opt
 
+let test_get_balance = typer_1 "TEST_GET_BALANCE" @@ fun addr ->
+  let%bind () = assert_eq addr (t_address ()) in
+  ok (t_mutez ())
+
 let test_assert_failure = typer_1 "TEST_ASSERT_FAILURE" @@ fun f ->
   let%bind (input , output) = trace_option (expected_function f) @@ get_t_function f in
   let%bind () = assert_eq input (t_unit ()) in
@@ -787,6 +791,7 @@ let constant_typers c loc : (typer , typer_error) result = match c with
   | C_TEST_SET_BALANCE -> ok @@ test_set_balance ;
   | C_TEST_EXTERNAL_CALL -> ok @@ test_external_call ;
   | C_TEST_GET_STORAGE -> ok @@ test_get_storage ;
+  | C_TEST_GET_BALANCE -> ok @@ test_get_balance ;
   | C_TEST_ASSERT_FAILURE -> ok @@ test_assert_failure ;
   | C_TEST_GENERATE_ADDR -> ok @@ test_generate_addr ;
   | _ as cst -> fail (corner_case @@ Format.asprintf "typer not implemented for constant %a" PP.constant cst)

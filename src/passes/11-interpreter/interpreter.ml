@@ -340,6 +340,7 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
             let param_storage = V_Record (LMap.of_list [ (Label "0", param) ; (Label "1", storage) ]) in
             let f_env' = Env.extend env (arg_binder, param_storage) in
             Try (
+              let>> () = Debit_balance amt in
               let>> () = Credit_balance (addr, amt) in
               let>> () = Internal_call addr in
               let* res = eval_ligo body f_env' in
@@ -423,6 +424,9 @@ let rec apply_operator : Ast_typed.constant' -> value list -> value Monad.t =
     | ( C_TEST_GET_STORAGE , [ V_Ct (C_address addr) ] ) ->
       let>> storage = Get_storage addr in
       return storage
+    | ( C_TEST_GET_BALANCE , [ V_Ct (C_address addr) ] ) ->
+      let>> balance = Get_balance addr in
+      return balance 
     | ( C_TEST_ASSERT_FAILURE , [ V_Func_val {arg_binder=_ ; body ; env} ] ) ->
       let* failed = Try (eval_ligo body env) in
       return_ct (C_bool (Option.is_none failed))
@@ -479,7 +483,7 @@ and eval_literal : Ast_typed.literal -> value Monad.t = function
   | Literal_key s       -> Monad.return @@ V_Ct (C_key s)
   | Literal_key_hash s  -> Monad.return @@ V_Ct (C_key_hash s)
   | Literal_chain_id s  -> Monad.return @@ V_Ct (C_key_hash s)
-  | Literal_operation o -> Monad.return @@ V_Ct (C_operation o)
+  | Literal_operation (o:packed_internal_operation) -> Monad.return @@ V_Ct (C_operation o)
 
 and eval_ligo : Ast_typed.expression -> env -> value Monad.t
   = fun term env ->
@@ -607,5 +611,5 @@ let eval : ?options:options -> Ast_typed.program -> (string , _) result =
       ok (pp , top_env, ctxt)
   in
   let%bind (res,_,_ctxt) = bind_fold_list aux ("",Env.empty_env,init_ctxt) prg in
-  (* let res = res ^ "\n" ^ Ligo_interpreter.PP.pp_context ctxt in *)
+  (* let res = res ^ "\n" ^ Ligo_interpreter.PP.pp_context _ctxt in *)
   ok @@ res

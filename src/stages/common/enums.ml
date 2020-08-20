@@ -164,6 +164,7 @@ type constant' =
   (* Tests - ligo interpreter only *)
   | C_TEST_INJECT_SCRIPT
   | C_TEST_GET_STORAGE
+  | C_TEST_GET_BALANCE
   | C_TEST_SET_NOW
   | C_TEST_SET_SOURCE
   | C_TEST_SET_BALANCE
