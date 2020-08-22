@@ -12,7 +12,7 @@ install-deps:
 build-deps:
 	export PATH="/usr/local/bin$${PATH:+:}$${PATH:-}"
 #	Create opam dev switch locally for use with Ligo, add merlin/etc
-	if [ -n "`opam switch show | grep -P ".+/ligo"`" ];
+	if [ -n "`opam switch show | grep "..*/ligo"`" ];
 	then :; else scripts/setup_switch.sh;
 	fi
 	eval $$(opam config env)
