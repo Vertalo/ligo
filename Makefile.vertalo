@@ -1,0 +1,18 @@
+
+all: port-build
+
+port-build:
+	#"build-deps"
+	# export PATH="/usr/local/bin$${PATH:+:}$${PATH:-}"
+	if [ ! -d "./_opam" ]; then \
+	scripts/setup_switch.sh; \
+	fi
+	eval $$(opam config env)
+	scripts/install_vendors_deps.sh
+	#"build"
+	eval $$(opam env)
+	scripts/build_ligo_local.sh
+
+clean:
+	eval $$(opam config env)
+	dune clean
