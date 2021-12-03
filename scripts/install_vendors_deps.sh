@@ -6,4 +6,4 @@ opam update
 # NEW-PROTOCOL-TEMPORARY
 
 # Install local dependencies
-opam install -y --deps-only --with-test --locked ./ligo.opam
+opam install -y --deps-only --with-test ./ligo.opam --locked
